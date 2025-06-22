@@ -11,7 +11,6 @@ body {
     margin: 0;
 }
 
-/* LOGIN PAGE!!!!*/
 .left-panel {
     flex: 1;
     /*background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); -- for plain background if ayw nyo sa gif ;))*/ 
@@ -133,7 +132,7 @@ body {
     font-size: 0.9rem;
 }
 
-.login-container input, .signup-container input {
+.login-container input, .signup-container input, .signup-container select {
     width: 100%;
     padding: 14px 16px;
     border-radius: 8px;
@@ -143,14 +142,14 @@ body {
     background: #fff;
 }
 
-.login-container input:focus, .signup-container input:focus {
+.login-container input:focus, .signup-container input:focus , .signup-container select:focus {
     outline: none;
     border-color: #cb7f00;
     box-shadow: 0 0 0 3px rgba(203, 127, 0, 0.1);
     transform: translateY(-1px);
 }
 
-.login-container input:hover, .signup-container input:hover {
+.login-container input:hover, .signup-container input:hover, .signup-container select:hover {
     border-color: #cb7f00;
 }
 

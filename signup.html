@@ -14,7 +14,12 @@
             align-items: center;
             height: 100%;
             width: 100vw;
-            background-color: #1b1b1b;
+            padding: 20px 0px;
+            
+            background-image: url(resources/login-gif.gif);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
         }
     </style>
     <div class="signup-content">
@@ -33,6 +38,16 @@
                 <div class="form-group">
                     <label for="phone_number">Phone Number</label>
                     <input type="integer" id="phone_number" name="phone_number" required placeholder="Enter your phone number">
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select your role</option>
+                        <option value="student">Student</option>
+                        <option value="faculty">Faculty</option>
+                        <option value="staff">Staff</option>
+                        <option value="visitor">Visitor</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
