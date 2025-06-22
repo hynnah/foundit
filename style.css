@@ -185,14 +185,14 @@ body {
     font-size: 0.9rem;
 }
 
-.register-link, .login-link a {
+.register-link a, .login-link a {
     color: #cb7f00;
     text-decoration: none;
     font-weight: 600;
     transition: color 0.3s ease;
 }
 
-.register-link, .login-link a:hover {
+.register-link a:hover, .login-link a:hover {
     color: #bd7800;
     text-decoration: underline;
 }
