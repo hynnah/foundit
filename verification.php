@@ -4,7 +4,7 @@
     $servername = "localhost";
     $username = "root";
     $password = "";
-    $dbname = "foundit";
+    $dbname = "s22102131_foundit";
 } else {
     // ONLINE
     $servername = "localhost"; 

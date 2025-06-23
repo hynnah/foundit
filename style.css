@@ -197,6 +197,32 @@ body {
     text-decoration: underline;
 }
 
+.error-message {
+    color: #e74c3c;
+    background-color: #fdecea;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.success-message {
+    color: #27ae60;
+    background-color: #e8f5e9;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.success-message a {
+    color: #27ae60;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
 @keyframes fadeInLeft {
     from {
         opacity: 0;
@@ -267,5 +293,36 @@ body {
     
     .welcome-text p {
         font-size: 0.9rem;
+    }
+}
+
+/* Signup Page Specific Styles */
+.signup-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+    background-image: url('resources/signup-gif.gif');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    padding: 40px;
+}
+
+/* Make sure the signup container matches login styling */
+.signup-container {
+    width: 100%;
+    max-width: 450px;
+}
+
+/* Mobile responsiveness for signup */
+@media (max-width: 768px) {
+    .signup-content {
+        padding: 20px;
+    }
+    
+    .signup-container {
+        padding: 30px 20px;
     }
 }
