@@ -10,7 +10,7 @@
     $servername = "localhost"; 
     $username = "s22102131_foundit";
     $password = "fi_database123";
-    $dbname = "s22102131_foundit";
+    $dbname = "s22102131_foundi";
 }
 
 $conn = new mysqli($servername, $username, $password, $dbname);
