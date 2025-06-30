@@ -3,7 +3,7 @@
     <div class='main-content'>
         <div class='side-bar'>
             <div class="user-menu" style="margin-bottom: 32px; align-items: center; display: flex; flex-direction: column;">
-                <img src="./resources/user.png" alt="user icon" style="width:64px; height:auto; border-radius:50%; object-fit:cover; margin-bottom:13px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+                <img src="./resources/carmeal.jfif" alt="user icon" style="width:64px; height:auto; border-radius:50%; object-fit:cover; margin-bottom:13px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
                 <button class="user-button" onclick="toggleDropdown()" style="width:100%; justify-content:center;">
                     <?php echo htmlspecialchars($user_name); ?>
                     <span style="margin-left:8px; font-size:1.1em;">&#9662;</span>
