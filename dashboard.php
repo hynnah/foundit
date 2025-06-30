@@ -33,7 +33,7 @@ $content_header = "Recent Posts";
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
         <img src="resources/jf.jfif" alt="report if lost icon, thinking mood" style="display: block; margin: 0 auto; width: 320px; height: auto; object-fit: cover;">
         <div style="margin-top: 18px;">
-            <h1 style="text-align: center;">Hi, I am dashboard, I am waiting for Johnfranz</h1>
+            <h1 style="text-align: center;">help</h1>
         </div>
     </div>
 
