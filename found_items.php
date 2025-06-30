@@ -31,7 +31,7 @@ $content_header = "Found Items";
 
     <!-- Just add your main content here, basta-->  
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
-        <img src="resources/report_if_lost(2).jpg" alt="report if lost icon, fresh mood" style="display: block; margin: 0 auto; width: 320px; height: auto; object-fit: cover;">
+        <img src="resources/zsof-cute.jfif" alt="report if lost icon, fresh mood" style="display: block; margin: 0 auto; width: 320px; height: auto; object-fit: cover;">
         <div style="margin-top: 18px;">
             <h1 style="text-align: center;">Hi, I am found items page, I am waiting for Johnfranz</h1>
         </div>

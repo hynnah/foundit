@@ -31,7 +31,7 @@ $content_header = "Report Lost Item";
 
     <!-- Just add your main content here, basta! just delete below-->  
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
-        <img src="resources/report_if_lost(1).jpg" alt="report if lost icon, cheerful mood" style="display: block; margin: 0 auto; width: 320px; height: auto; object-fit: cover;">
+        <img src="resources/hannah-cute.gif" alt="report if lost icon, cheerful mood" style="display: block; margin: 0 auto; width: 320px; height: auto; object-fit: cover;">
         <div style="margin-top: 18px;">
             <h1 style="text-align: center;">Hi, I am report lost items page, I am waiting for Johnfranz</h1>
         </div>
