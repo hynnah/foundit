@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="style.css">
+<link rel<="stylesheet" href="style.css">
 <body>
     <div class='main-content'>
         <div class='side-bar'>
@@ -21,6 +21,10 @@
             </a>
             <a href="report_lost_item.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'report_lost_item.php') ? 'active' : ''; ?>">
                 <img src="./resources/location-exclamation.png" alt="Report Lost Items Icon">Report
+            </a>
+            </a>
+            <a href="inbox.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'inbox.php') ? 'active' : ''; ?>">
+                <img src="./resources/env.png" alt="Inbox Icon">Inbox
             </a>
         </div>
         <div class="container" style="flex:1; display:flex; flex-direction:column; min-height:100vh;">

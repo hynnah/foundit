@@ -24,20 +24,14 @@ $content_header = "Found Items";
     </style>
 </head>
 <body>
-    <!-- Please dont remove, kay maguba -->  
+    <!-- Please dont remove -->  
     <?php
     ob_start();
     ?> 
 
-    <!-- Just add your main content here, basta-->  
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
-        <img src="resources/zsof-cute.jfif" alt="report if lost icon, fresh mood" style="display: block; margin: 0 auto; width: 320px; height: auto; object-fit: cover;">
-        <div style="margin-top: 18px;">
-            <h1 style="text-align: center;">Hi, I am found items page, I am waiting for Johnfranz</h1>
-        </div>
-    </div>
+    <!-- Just add your main content here-->
 
-    <!-- Please dont remove, kay maguba -->  
+    <!-- Please dont remove -->  
     <?php
         $page_content = ob_get_clean();
         include_once "includes/general_layout.php";
