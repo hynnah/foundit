@@ -57,7 +57,7 @@ if (isset($_POST['signup-submit'])) {
         $personId = mysqli_insert_id($connection);
 
         // Insert into Users table
-        $sql = "INSERT INTO Users (PersonID, role) VALUES (?, ?)";
+        $sql = "INSERT INTO user (UserID, role) VALUES (?, ?)";
         $stmt = mysqli_stmt_init($connection);
         if (!mysqli_stmt_prepare($stmt, $sql)) {
             header("Location: register.php?error=sqlerror");
@@ -75,10 +75,11 @@ if (isset($_POST['signup-submit'])) {
             $_SESSION['userName'] = $name;
 
             header("Location: register.php?signup=success");
+            mysqli_stmt_close($stmt);
+            mysqli_close($connection);
             exit();
         }
     }
-
     mysqli_stmt_close($stmt);
     mysqli_close($connection);
 }

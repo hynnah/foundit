@@ -11,9 +11,10 @@ if (isset($_POST['login-submit'])) {
         exit();
     }
 
-    $sql = "SELECT p.*, u.role FROM Person p 
-            JOIN Users u ON p.PersonID = u.PersonID 
-            WHERE p.email=?";
+    // Corrected query with proper table name casing
+    $sql = "SELECT p.*, u.role, p.person_type FROM person p 
+        LEFT JOIN user u ON p.PersonID = u.UserID 
+        WHERE p.email=?";
     $stmt = mysqli_stmt_init($connection);
     
     if (!mysqli_stmt_prepare($stmt, $sql)) {
@@ -29,19 +30,38 @@ if (isset($_POST['login-submit'])) {
     if ($row = mysqli_fetch_assoc($result)) {
         if (password_verify($password, $row['password'])) {
             session_start();
-            // Regenerate session ID to prevent fixation
-            session_regenerate_id(true);
+        // Regenerate session ID to prevent fixation
+    session_regenerate_id(true);
+
+    // Clear existing session data
+    $_SESSION = [];
+
+    // Set secure session parameters
+    $_SESSION = [
+        'userId' => $row['PersonID'],
+        'userEmail' => $row['email'],
+        'userRole' => $row['role'] ?? null,
+        'isAdmin' => ($row['person_type'] === 'Administrator'),
+        'userName' => $row['name'],
+        'logged_in' => true,
+        'ip_address' => $_SERVER['REMOTE_ADDR'],
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+        'last_activity' => time()
+    ];
+
+    // Set secure session cookie params
+    $cookieParams = session_get_cookie_params();
+    session_set_cookie_params([
+        'lifetime' => 86400, // 1 day
+        'path' => '/',
+        'domain' => $_SERVER['HTTP_HOST'],
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
             
-            $_SESSION = [
-                'userId' => $row['PersonID'],
-                'userEmail' => $row['email'],
-                'userRole' => $row['role'],
-                'userName' => $row['name'],
-                'logged_in' => true
-            ];
-            
-            // Redirect based on role
-            header("Location: " . ($row['role'] === 'admin' ? 'admin/dashboard.php' : 'dashboard.php'));
+            // Redirect based on admin status
+            header("Location: " . ($_SESSION['isAdmin'] ? 'admin/dashboard.php' : 'dashboard.php'));
             exit();
         }
     }

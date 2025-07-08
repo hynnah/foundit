@@ -11,12 +11,12 @@ $recent_reports = [];
 $sql = "SELECT r.*, 
                l.location_last_seen AS location, 
                f.location_found AS location,
-               a.status_name AS approval_status
+               a.status_name AS approvalstatus
         FROM report r
         LEFT JOIN lost l ON r.ReportID = l.ReportID AND r.report_type = 'lost'
         LEFT JOIN found f ON r.ReportID = f.ReportID AND r.report_type = 'found'
-        LEFT JOIN approval_status a ON r.ApprovalStatusID = a.ApprovalStatusID
-        WHERE r.ApprovalStatusID = 2  -- Only show approved reports
+        LEFT JOIN approvalstatus a ON r.ApprovalStatusID = a.ApprovalStatusID
+        WHERE r.ApprovalStatusID = 2
         ORDER BY r.submission_date DESC
         LIMIT 10";
 
@@ -26,6 +26,7 @@ if ($result) {
         $recent_reports[] = $row;
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -2,16 +2,12 @@
 session_start();
 
 if (!isset($_SESSION['userId']) || empty($_SESSION['userId'])) {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit();
 }
 
 $user_name = $_SESSION['userName'] ?? 'User';
 $content_header = "Found Items";
-
-// Enable error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,8 +15,8 @@ ini_set('display_errors', 1);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoundIt - Found Items</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
+    <link rel="stylesheet" href="../style.css">
+    <style> /* ayaw hilabti*/
         body {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             min-height: 100vh;
@@ -28,13 +24,15 @@ ini_set('display_errors', 1);
     </style>
 </head>
 <body>
-    <?php ob_start(); ?>
+    <!-- Please dont remove -->  
+    <?php
+    ob_start();
+    ?> 
 
     <div class="content">
         <h2>Search Found Items</h2>
         <form method="get" action="found_items.php" style="margin-bottom: 20px;">
-            <input type="text" name="search" placeholder="Search by item name or location" 
-                   value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+            <input type="text" name="search" placeholder="Search by item name or location" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
             <button type="submit">Search</button>
         </form>
 
@@ -51,33 +49,24 @@ ini_set('display_errors', 1);
             </thead>
             <tbody>
             <?php
-            require_once 'dbh.inc.php';
+            require_once '../dbh.inc.php';
 
             $search = $_GET['search'] ?? '';
-            
-            // Corrected SQL query without PHP-style comments
-            $sql = "SELECT 
-                        r.item_name, 
-                        r.description, 
-                        r.incident_date, 
-                        r.image_path,
-                        IFNULL(f.location_found, 'N/A') as location_found,
-                        IFNULL(fp.post_status, 'Active') as post_status
-                    FROM Report r
-                    LEFT JOIN Found f ON r.ReportID = f.ReportID
-                    LEFT JOIN FeedPost fp ON r.ReportID = fp.ReportID
-                    WHERE r.report_type = 'Found'
-                    AND r.ApprovalStatusID = 2";
+            $sql = "SELECT r.item_name, r.description, r.incident_date, f.location_found, fp.post_status
+            FROM FeedPost fp
+            INNER JOIN Report r ON fp.ReportID = r.ReportID
+            INNER JOIN Found f ON r.ReportID = f.ReportID
+            WHERE fp.post_status = 'Active'";
 
             if (!empty($search)) {
-                $sql .= " AND r.item_name LIKE ?";
+             $sql .= " AND (r.item_name LIKE ? OR f.location_found LIKE ?)";
             }
 
             $stmt = mysqli_prepare($connection, $sql);
-            if (!empty($search)) {
+                if (!empty($search)) {
                 $like = '%' . $search . '%';
-                mysqli_stmt_bind_param($stmt, "s", $like);
-            }
+                mysqli_stmt_bind_param($stmt, "ss", $like, $like);
+            }           
             
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
@@ -93,16 +82,18 @@ ini_set('display_errors', 1);
                     echo "</tr>";
                 }
             } else {
-                echo "<tr><td colspan='5' style='text-align:center;'>No found items found.</td></tr>";
+                echo "<tr><td colspan='5' style='text-align:center;'>No found items.</td></tr>";
             }
             ?>
             </tbody>
         </table>
     </div>
 
+    <!-- Please dont remove -->  
     <?php
         $page_content = ob_get_clean();
-        include_once "includes/general_layout.php";
+        include_once '../includes/admin_layout.php';
     ?>
+
 </body>
 </html>
