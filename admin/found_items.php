@@ -29,10 +29,11 @@ $content_header = "Found Items";
     ob_start();
     ?> 
 
-    <div class="content">
+<div class="content">
         <h2>Search Found Items</h2>
         <form method="get" action="found_items.php" style="margin-bottom: 20px;">
-            <input type="text" name="search" placeholder="Search by item name or location" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+            <input type="text" name="search" placeholder="Search by item name or location" 
+                   value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
             <button type="submit">Search</button>
         </form>
 
@@ -52,21 +53,30 @@ $content_header = "Found Items";
             require_once '../dbh.inc.php';
 
             $search = $_GET['search'] ?? '';
-            $sql = "SELECT r.item_name, r.description, r.incident_date, f.location_found, fp.post_status
-            FROM FeedPost fp
-            INNER JOIN Report r ON fp.ReportID = r.ReportID
-            INNER JOIN Found f ON r.ReportID = f.ReportID
-            WHERE fp.post_status = 'Active'";
+            
+            // Corrected SQL query without PHP-style comments
+            $sql = "SELECT 
+                        r.item_name, 
+                        r.description, 
+                        r.incident_date, 
+                        r.image_path,
+                        IFNULL(f.location_found, 'N/A') as location_found,
+                        IFNULL(fp.post_status, 'Active') as post_status
+                    FROM Report r
+                    LEFT JOIN Found f ON r.ReportID = f.ReportID
+                    LEFT JOIN FeedPost fp ON r.ReportID = fp.ReportID
+                    WHERE r.report_type = 'Found'
+                    AND r.ApprovalStatusID = 2";
 
             if (!empty($search)) {
-             $sql .= " AND (r.item_name LIKE ? OR f.location_found LIKE ?)";
+                $sql .= " AND r.item_name LIKE ?";
             }
 
             $stmt = mysqli_prepare($connection, $sql);
-                if (!empty($search)) {
+            if (!empty($search)) {
                 $like = '%' . $search . '%';
-                mysqli_stmt_bind_param($stmt, "ss", $like, $like);
-            }           
+                mysqli_stmt_bind_param($stmt, "s", $like);
+            }
             
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
@@ -82,7 +92,7 @@ $content_header = "Found Items";
                     echo "</tr>";
                 }
             } else {
-                echo "<tr><td colspan='5' style='text-align:center;'>No found items.</td></tr>";
+                echo "<tr><td colspan='5' style='text-align:center;'>No found items found.</td></tr>";
             }
             ?>
             </tbody>
