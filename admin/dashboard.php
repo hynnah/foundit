@@ -11,7 +11,8 @@ $content_header = "Pending Reports";
 
 require_once '../dbh.inc.php';
 
-$sql = "SELECT r.ReportID, r.item_name, r.description, r.report_type, r.submission_date, p.name AS submitter_name
+// Updated query to include image_path
+$sql = "SELECT r.ReportID, r.item_name, r.description, r.report_type, r.submission_date, r.image_path, p.name AS submitter_name
         FROM Report r
         JOIN User u ON r.UserID_submitter = u.UserID
         JOIN Person p ON u.UserID = p.PersonID
@@ -32,7 +33,7 @@ if ($result && mysqli_num_rows($result) > 0) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoundIt - Found Items</title>
+    <title>FoundIt - Admin Dashboard</title>
     <link rel="stylesheet" href="../style.css">
     <style>/* ayaw hilabti*/
         body {
@@ -48,12 +49,19 @@ if ($result && mysqli_num_rows($result) > 0) {
             padding: 12px;
             border: 1px solid #ccc;
             text-align: left;
+            vertical-align: middle;
         }
         th {
             background-color: #f1f1f1;
         }
         .action-btn {
             margin-right: 10px;
+        }
+        .item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -68,6 +76,7 @@ if ($result && mysqli_num_rows($result) > 0) {
         <table>
             <thead>
                 <tr>
+                    <th>Image</th>
                     <th>Item Name</th>
                     <th>Description</th>
                     <th>Type</th>
@@ -79,6 +88,13 @@ if ($result && mysqli_num_rows($result) > 0) {
             <tbody>
                 <?php foreach ($pending_reports as $report) : ?>
                     <tr>
+                        <td>
+                            <?php if (!empty($report['image_path'])): ?>
+                                <img src="../<?= htmlspecialchars($report['image_path']) ?>" alt="Item Image" class="item-image">
+                            <?php else: ?>
+                                <img src="../images/default-item.jpg" alt="Default Image" class="item-image">
+                            <?php endif; ?>
+                        </td>
                         <td><?= htmlspecialchars($report['item_name']) ?></td>
                         <td><?= htmlspecialchars($report['description']) ?></td>
                         <td><?= ucfirst($report['report_type']) ?></td>
@@ -102,5 +118,4 @@ if ($result && mysqli_num_rows($result) > 0) {
     include_once "../includes/admin_layout.php";
     ?>
 </body>
-
 </html>
