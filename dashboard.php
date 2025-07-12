@@ -20,10 +20,30 @@ $sql = "SELECT r.*,
         ORDER BY r.submission_date DESC
         LIMIT 10";
 
-$result = mysqli_query($connection, $sql);
-if ($result) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $recent_reports[] = $row;
+if (isset($_SESSION['userId'])) {
+    $userId = $_SESSION['userId'];
+
+    $sql = "SELECT r.*, 
+               l.location_last_seen AS lost_location, 
+               f.location_found AS found_location,
+               a.status_name AS approvalstatus
+            FROM report r
+            LEFT JOIN lost l ON r.ReportID = l.ReportID AND r.report_type = 'lost'
+            LEFT JOIN found f ON r.ReportID = f.ReportID AND r.report_type = 'found'
+            LEFT JOIN approvalstatus a ON r.ApprovalStatusID = a.ApprovalStatusID
+            WHERE r.ApprovalStatusID = 2 AND r.UserID_submitter = ?
+            ORDER BY r.submission_date DESC
+            LIMIT 10";
+
+    $stmt = mysqli_prepare($connection, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $userId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $recent_reports[] = $row;
+        }
     }
 }
 

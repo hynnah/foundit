@@ -88,22 +88,42 @@ $monthly_stats = mysqli_query($connection, $sql);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoundIt - Found Items</title>
+    <title>FoundIt - Admin Dashboard</title>
     <link rel="stylesheet" href="../style.css">
-    <style> /* ayaw hilabti*/
+    <style>/* ayaw hilabti*/
         body {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             min-height: 100vh;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: left;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f1f1f1;
+        }
+        .action-btn {
+            margin-right: 10px;
+        }
+        .item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
-    <!-- Please dont remove -->  
-    <?php
-    ob_start();
-    ?> 
+    <?php ob_start(); ?>
 
-    <!-- Just add your main content here-->
+    <!-- Dashboard content -->
     <div class="dashboard-container">
         <!-- Statistics Overview -->
         <div class="stats-grid">
@@ -524,10 +544,9 @@ $monthly_stats = mysqli_query($connection, $sql);
         }
     </style>
 
-    <!-- Please dont remove -->  
     <?php
-        $page_content = ob_get_clean();
-        include_once "../includes/admin_layout.php";
+    $page_content = ob_get_clean();
+    include_once "../includes/admin_layout.php";
     ?>
-
+</body>
 </html>
