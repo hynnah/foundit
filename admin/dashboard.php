@@ -7,7 +7,25 @@ if (!isset($_SESSION['userId']) || empty($_SESSION['userId'])) {
 }
 
 $user_name = $_SESSION['userName'] ?? 'User';
-$content_header = "Found Items";
+$content_header = "Pending Reports";
+
+require_once '../dbh.inc.php';
+
+$sql = "SELECT r.ReportID, r.item_name, r.description, r.report_type, r.submission_date, p.name AS submitter_name
+        FROM Report r
+        JOIN User u ON r.UserID_submitter = u.UserID
+        JOIN Person p ON u.UserID = p.PersonID
+        WHERE r.ApprovalStatusID = 1
+        ORDER BY r.submission_date DESC";
+
+$result = mysqli_query($connection, $sql);
+$pending_reports = [];
+
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $pending_reports[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -16,25 +34,73 @@ $content_header = "Found Items";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoundIt - Found Items</title>
     <link rel="stylesheet" href="../style.css">
-    <style> /* ayaw hilabti*/
+    <style>/* ayaw hilabti*/
         body {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             min-height: 100vh;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f1f1;
+        }
+        .action-btn {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
-    <!-- Please dont remove -->  
-    <?php
-    ob_start();
-    ?> 
+    <?php ob_start(); ?>
 
-    <!-- Just add your main content here-->
+    <h2><?= htmlspecialchars($content_header) ?></h2>
 
-    <!-- Please dont remove -->  
+    <?php if (empty($pending_reports)) : ?>
+        <p>No pending reports at the moment.</p>
+    <?php else : ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Submitted By</th>
+                    <th>Date Submitted</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pending_reports as $report) : ?>
+                    <tr>
+                        <td><?= htmlspecialchars($report['item_name']) ?></td>
+                        <td><?= htmlspecialchars($report['description']) ?></td>
+                        <td><?= ucfirst($report['report_type']) ?></td>
+                        <td><?= htmlspecialchars($report['submitter_name']) ?></td>
+                        <td><?= htmlspecialchars($report['submission_date']) ?></td>
+                        <td>
+                            <form action="process_approval.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="report_id" value="<?= $report['ReportID'] ?>">
+                                <button class="action-btn" name="action" value="approve">Approve</button>
+                                <button class="action-btn" name="action" value="reject">Reject</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+
     <?php
-        $page_content = ob_get_clean();
-        include_once "../includes/admin_layout.php";
+    $page_content = ob_get_clean();
+    include_once "../includes/admin_layout.php";
     ?>
+</body>
 
 </html>
