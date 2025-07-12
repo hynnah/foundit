@@ -15,7 +15,7 @@ Losing personal belongings on campus is a common issue. FoundIt aims to simplify
 ### Reporting and Posting
 - Lost item report submission form
 - Admin approval or rejection of reports
-- Logging of found items by authorized personnel
+- Logging of found items by administrators
 - Public feed for verified lost and found items
 
 ### Browsing and Search
