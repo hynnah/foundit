@@ -27,7 +27,7 @@
                 $error = $_GET["error"];
                 if ($error === "emptyfields") {
                     echo '<p class="error-message">Please fill in all fields.</p>';
-                } else if ($error === "wrongcredentials") {
+                } else if ($error === "authfailed") {
                     echo '<p class="error-message">Invalid email or password.</p>';
                 } else if ($error === "sqlerror") {
                     echo '<p class="error-message">Database error. Please try again.</p>';

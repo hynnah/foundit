@@ -12,8 +12,8 @@ if (isset($_POST['login-submit'])) {
     }
 
     // Corrected query with proper table name casing
-    $sql = "SELECT p.*, u.role, p.person_type FROM person p 
-        LEFT JOIN user u ON p.PersonID = u.UserID 
+    $sql = "SELECT p.*, u.role, p.person_type FROM Person p 
+        LEFT JOIN User u ON p.PersonID = u.UserID 
         WHERE p.email=?";
     $stmt = mysqli_stmt_init($connection);
     

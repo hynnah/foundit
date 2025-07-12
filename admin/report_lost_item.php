@@ -1,29 +1,29 @@
 <?php
-session_start();
+require_once '../auth_check.php';
+requireAdmin(); // Only admins can access this page
 
-if (!isset($_SESSION['userId']) || empty($_SESSION['userId'])) {
-    header("Location: ../login.php");
-    exit();
-}
-
-$user_name = $_SESSION['userName'] ?? 'User';
-$content_header = "Report Lost Item";
-
-// Database connection
+require_once '../functions.php';
 require_once '../dbh.inc.php';
+
+$user_name = getUserName();
+$content_header = "Report Lost Item";
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get form data
-    $itemName = $_POST['itemName'];
-    $description = $_POST['description'];
-    $location = $_POST['location'];
-    $userId = $_SESSION['userId'];
+    // CSRF protection
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error_message = "Invalid CSRF token. Please refresh the page and try again.";
+    } else {
+        // Get form data
+        $itemName = trim($_POST['itemName'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+        $userId = getUserId();
     
     // Handle image upload
     $imagePath = null;
     if (isset($_FILES['itemImage']) && $_FILES['itemImage']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/';
+        $uploadDir = '../uploads/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Move uploaded file
         if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $destination)) {
-            $imagePath = $destination;
+            $imagePath = $filename; // Store only filename, not full path
         }
     }
     
@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Restore autocommit
     mysqli_autocommit($connection, TRUE);
+    } // Close CSRF protection if statement
 }
 ?>
 
@@ -358,6 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form id="reportForm" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
             <div class="form-group">
                 <label for="itemName">
                     <i class="fa-solid fa-tag"></i>

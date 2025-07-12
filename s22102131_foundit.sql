@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.1deb1+deb12u1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Jul 08, 2025 at 01:10 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Host: localhost:3306
+-- Generation Time: Jul 12, 2025 at 09:08 PM
+-- Server version: 10.11.11-MariaDB-0+deb12u1
+-- PHP Version: 8.2.28
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,434 +24,351 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `administrator`
+-- Table structure for table `Administrator`
 --
 
-CREATE TABLE `administrator` (
-  `PersonID` int(11) NOT NULL,
-  `office_location` varchar(100) NOT NULL
+CREATE TABLE `Administrator` (
+  `AdminID` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `Administrator`
+--
+
+INSERT INTO `Administrator` (`AdminID`) VALUES
+(1);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `approval_status`
+-- Table structure for table `ApprovalStatus`
 --
 
-CREATE TABLE `approval_status` (
+CREATE TABLE `ApprovalStatus` (
   `ApprovalStatusID` int(11) NOT NULL,
   `status_name` varchar(50) NOT NULL,
-  `description` text DEFAULT NULL
+  `description` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `approval_status`
+-- Dumping data for table `ApprovalStatus`
 --
 
-INSERT INTO `approval_status` (`ApprovalStatusID`, `status_name`, `description`) VALUES
-(1, 'Pending', 'Report is awaiting review'),
-(2, 'Approved', 'Report has been approved and is visible'),
-(3, 'Rejected', 'Report has been rejected'),
-(4, 'Under Review', 'Report is currently being reviewed'),
-(5, 'Archived', 'Report has been archived');
+INSERT INTO `ApprovalStatus` (`ApprovalStatusID`, `status_name`, `description`) VALUES
+(1, 'Pending', 'Awaiting admin review'),
+(2, 'Approved', 'Approved by admin for public posting'),
+(3, 'Rejected', 'Rejected by admin');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `claim`
+-- Table structure for table `Claim`
 --
 
-CREATE TABLE `claim` (
+CREATE TABLE `Claim` (
   `ClaimID` int(11) NOT NULL,
   `ContactID` int(11) NOT NULL,
   `UserID_claimant` int(11) NOT NULL,
   `AdminID_processor` int(11) NOT NULL,
-  `claim_date` timestamp NULL DEFAULT current_timestamp(),
-  `claim_status` enum('pending','approved','rejected','completed') NOT NULL DEFAULT 'pending',
+  `claim_date` datetime NOT NULL DEFAULT current_timestamp(),
+  `claim_status` enum('Processing','Completed','Rejected') DEFAULT 'Processing',
   `interrogation_notes` text DEFAULT NULL,
   `passed_interrogation` tinyint(1) DEFAULT NULL,
-  `resolution_date` timestamp NULL DEFAULT NULL
+  `resolution_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `contact_request`
+-- Table structure for table `ContactRequest`
 --
 
-CREATE TABLE `contact_request` (
+CREATE TABLE `ContactRequest` (
   `ContactID` int(11) NOT NULL,
   `UserID_claimant` int(11) NOT NULL,
   `PostID` int(11) NOT NULL,
   `AdminID_reviewer` int(11) DEFAULT NULL,
   `ownership_description` text NOT NULL,
-  `submission_date` timestamp NULL DEFAULT current_timestamp(),
+  `submission_date` datetime NOT NULL DEFAULT current_timestamp(),
   `detailed_description` text DEFAULT NULL,
   `evidence_details` text DEFAULT NULL,
-  `review_status` enum('pending','approved','rejected','under_review') NOT NULL DEFAULT 'pending',
-  `review_date` timestamp NULL DEFAULT NULL,
+  `review_status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `review_date` datetime DEFAULT NULL,
   `review_notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `feed_post`
+-- Table structure for table `FeedPost`
 --
 
-CREATE TABLE `feed_post` (
+CREATE TABLE `FeedPost` (
   `PostID` int(11) NOT NULL,
   `ReportID` int(11) NOT NULL,
-  `post_date` timestamp NULL DEFAULT current_timestamp(),
-  `post_status` enum('active','archived','deleted') NOT NULL DEFAULT 'active'
+  `post_date` datetime NOT NULL DEFAULT current_timestamp(),
+  `post_status` enum('Active','Archived','Claimed') DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `found`
+-- Table structure for table `Found`
 --
 
-CREATE TABLE `found` (
+CREATE TABLE `Found` (
   `ReportID` int(11) NOT NULL,
-  `location_found` varchar(200) NOT NULL
+  `location_found` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `lost`
+-- Table structure for table `Lost`
 --
 
-CREATE TABLE `lost` (
+CREATE TABLE `Lost` (
   `ReportID` int(11) NOT NULL,
-  `location_last_seen` varchar(200) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `lost`
---
-
-INSERT INTO `lost` (`ReportID`, `location_last_seen`) VALUES
-(1, 'Bunzel Building, ROOM LB 468TC');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `lostitems`
---
-
-CREATE TABLE `lostitems` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `item_name` varchar(100) NOT NULL,
-  `description` text NOT NULL,
-  `location` varchar(200) NOT NULL,
-  `image_path` varchar(255) DEFAULT NULL,
-  `status` enum('pending','approved','rejected','archived') NOT NULL DEFAULT 'pending',
-  `date_reported` timestamp NULL DEFAULT current_timestamp(),
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `location_last_seen` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `person`
+-- Table structure for table `Person`
 --
 
-CREATE TABLE `person` (
+CREATE TABLE `Person` (
   `PersonID` int(11) NOT NULL,
   `name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
   `phone_number` varchar(20) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `person_type` enum('User','Administrator') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `person`
+-- Dumping data for table `Person`
 --
 
-INSERT INTO `person` (`PersonID`, `name`, `email`, `phone_number`, `password`, `created_at`, `updated_at`) VALUES
-(1, 'Test Test', 'test@gmail.com', '09653422342', '$2y$10$nkuTDJ3iAL4ZmBtFYnh7OuMGPtVvdxZWI6h9fz3OAV6qp05uICjsW', '2025-06-23 13:26:06', '2025-06-23 13:26:06');
+INSERT INTO `Person` (`PersonID`, `name`, `email`, `phone_number`, `password`, `person_type`) VALUES
+(1, 'System Admin', 'admin@usc.edu.ph', '09123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator'),
+(2, 'John Student', 'john.student@usc.edu.ph', '09987654321', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'User');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `report`
+-- Table structure for table `Report`
 --
 
-CREATE TABLE `report` (
+CREATE TABLE `Report` (
   `ReportID` int(11) NOT NULL,
   `UserID_submitter` int(11) NOT NULL,
   `AdminID_reviewer` int(11) DEFAULT NULL,
-  `report_type` enum('found','lost') NOT NULL,
+  `report_type` enum('Lost','Found') NOT NULL,
   `item_name` varchar(100) NOT NULL,
-  `description` text NOT NULL,
-  `image_path` varchar(255) DEFAULT NULL,
-  `incident_date` date NOT NULL,
-  `submission_date` timestamp NULL DEFAULT current_timestamp(),
+  `description` text DEFAULT NULL,
+  `incident_date` datetime NOT NULL,
+  `submission_date` datetime NOT NULL DEFAULT current_timestamp(),
   `claimedYN` tinyint(1) DEFAULT 0,
-  `archivedYN` tinyint(1) DEFAULT 0,
-  `archivedDate` timestamp NULL DEFAULT NULL,
-  `reviewDate` timestamp NULL DEFAULT NULL,
+  `archiveYN` tinyint(1) DEFAULT 0,
+  `archiveDate` datetime DEFAULT NULL,
+  `reviewDate` datetime DEFAULT NULL,
   `reviewNote` text DEFAULT NULL,
-  `ApprovalStatusID` int(11) DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `report`
---
-
-INSERT INTO `report` (`ReportID`, `UserID_submitter`, `AdminID_reviewer`, `report_type`, `item_name`, `description`, `image_path`, `incident_date`, `submission_date`, `claimedYN`, `archivedYN`, `archivedDate`, `reviewDate`, `reviewNote`, `ApprovalStatusID`) VALUES
-(1, 1, NULL, 'lost', 'iPhone 18 Pro Max', 'Do I lost my 18 pro max if u see it pls call 09322102131, thx homie!', 'uploads/item_686c53a2866135.47012837.jpg', '2025-07-08', '2025-07-07 23:09:22', 0, 0, NULL, NULL, NULL, 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `report_images`
---
-
-CREATE TABLE `report_images` (
-  `ImageID` int(11) NOT NULL,
-  `ReportID` int(11) NOT NULL,
-  `image_path` varchar(255) NOT NULL,
-  `image_name` varchar(255) NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+  `ApprovalStatusID` int(11) DEFAULT NULL,
+  `image_path` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `users`
+-- Table structure for table `User`
 --
 
-CREATE TABLE `users` (
-  `PersonID` int(11) NOT NULL,
-  `role` enum('student','staff','faculty') NOT NULL DEFAULT 'student',
-  `student_id` varchar(20) DEFAULT NULL,
-  `department` varchar(100) DEFAULT NULL
+CREATE TABLE `User` (
+  `UserID` int(11) NOT NULL,
+  `role` enum('Student','Teacher','Staff','Visitor','Cashier','Guard','Janitor') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `users`
+-- Dumping data for table `User`
 --
 
-INSERT INTO `users` (`PersonID`, `role`, `student_id`, `department`) VALUES
-(1, 'student', NULL, NULL);
+INSERT INTO `User` (`UserID`, `role`) VALUES
+(2, 'Student');
 
 --
 -- Indexes for dumped tables
 --
 
 --
--- Indexes for table `administrator`
+-- Indexes for table `Administrator`
 --
-ALTER TABLE `administrator`
-  ADD PRIMARY KEY (`PersonID`);
+ALTER TABLE `Administrator`
+  ADD PRIMARY KEY (`AdminID`);
 
 --
--- Indexes for table `approval_status`
+-- Indexes for table `ApprovalStatus`
 --
-ALTER TABLE `approval_status`
+ALTER TABLE `ApprovalStatus`
   ADD PRIMARY KEY (`ApprovalStatusID`);
 
 --
--- Indexes for table `claim`
+-- Indexes for table `Claim`
 --
-ALTER TABLE `claim`
+ALTER TABLE `Claim`
   ADD PRIMARY KEY (`ClaimID`),
   ADD KEY `ContactID` (`ContactID`),
   ADD KEY `UserID_claimant` (`UserID_claimant`),
   ADD KEY `AdminID_processor` (`AdminID_processor`);
 
 --
--- Indexes for table `contact_request`
+-- Indexes for table `ContactRequest`
 --
-ALTER TABLE `contact_request`
+ALTER TABLE `ContactRequest`
   ADD PRIMARY KEY (`ContactID`),
   ADD KEY `UserID_claimant` (`UserID_claimant`),
   ADD KEY `PostID` (`PostID`),
   ADD KEY `AdminID_reviewer` (`AdminID_reviewer`);
 
 --
--- Indexes for table `feed_post`
+-- Indexes for table `FeedPost`
 --
-ALTER TABLE `feed_post`
+ALTER TABLE `FeedPost`
   ADD PRIMARY KEY (`PostID`),
   ADD KEY `ReportID` (`ReportID`);
 
 --
--- Indexes for table `found`
+-- Indexes for table `Found`
 --
-ALTER TABLE `found`
+ALTER TABLE `Found`
   ADD PRIMARY KEY (`ReportID`);
 
 --
--- Indexes for table `lost`
+-- Indexes for table `Lost`
 --
-ALTER TABLE `lost`
+ALTER TABLE `Lost`
   ADD PRIMARY KEY (`ReportID`);
 
 --
--- Indexes for table `lostitems`
+-- Indexes for table `Person`
 --
-ALTER TABLE `lostitems`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `person`
---
-ALTER TABLE `person`
+ALTER TABLE `Person`
   ADD PRIMARY KEY (`PersonID`),
   ADD UNIQUE KEY `email` (`email`);
 
 --
--- Indexes for table `report`
+-- Indexes for table `Report`
 --
-ALTER TABLE `report`
+ALTER TABLE `Report`
   ADD PRIMARY KEY (`ReportID`),
   ADD KEY `UserID_submitter` (`UserID_submitter`),
   ADD KEY `AdminID_reviewer` (`AdminID_reviewer`),
   ADD KEY `ApprovalStatusID` (`ApprovalStatusID`);
 
 --
--- Indexes for table `report_images`
+-- Indexes for table `User`
 --
-ALTER TABLE `report_images`
-  ADD PRIMARY KEY (`ImageID`),
-  ADD KEY `ReportID` (`ReportID`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`PersonID`);
+ALTER TABLE `User`
+  ADD PRIMARY KEY (`UserID`);
 
 --
 -- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT for table `approval_status`
+-- AUTO_INCREMENT for table `ApprovalStatus`
 --
-ALTER TABLE `approval_status`
-  MODIFY `ApprovalStatusID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+ALTER TABLE `ApprovalStatus`
+  MODIFY `ApprovalStatusID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT for table `claim`
+-- AUTO_INCREMENT for table `Claim`
 --
-ALTER TABLE `claim`
+ALTER TABLE `Claim`
   MODIFY `ClaimID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `contact_request`
+-- AUTO_INCREMENT for table `ContactRequest`
 --
-ALTER TABLE `contact_request`
+ALTER TABLE `ContactRequest`
   MODIFY `ContactID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `feed_post`
+-- AUTO_INCREMENT for table `FeedPost`
 --
-ALTER TABLE `feed_post`
+ALTER TABLE `FeedPost`
   MODIFY `PostID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `lostitems`
+-- AUTO_INCREMENT for table `Person`
 --
-ALTER TABLE `lostitems`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `Person`
+  MODIFY `PersonID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `person`
+-- AUTO_INCREMENT for table `Report`
 --
-ALTER TABLE `person`
-  MODIFY `PersonID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `report`
---
-ALTER TABLE `report`
-  MODIFY `ReportID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `report_images`
---
-ALTER TABLE `report_images`
-  MODIFY `ImageID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `Report`
+  MODIFY `ReportID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
 --
 
 --
--- Constraints for table `administrator`
+-- Constraints for table `Administrator`
 --
-ALTER TABLE `administrator`
-  ADD CONSTRAINT `Administrator_ibfk_1` FOREIGN KEY (`PersonID`) REFERENCES `person` (`PersonID`) ON DELETE CASCADE;
+ALTER TABLE `Administrator`
+  ADD CONSTRAINT `Administrator_ibfk_1` FOREIGN KEY (`AdminID`) REFERENCES `Person` (`PersonID`) ON DELETE CASCADE;
 
 --
--- Constraints for table `claim`
+-- Constraints for table `Claim`
 --
-ALTER TABLE `claim`
-  ADD CONSTRAINT `claim_ibfk_1` FOREIGN KEY (`ContactID`) REFERENCES `contact_request` (`ContactID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `claim_ibfk_2` FOREIGN KEY (`UserID_claimant`) REFERENCES `users` (`PersonID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `claim_ibfk_3` FOREIGN KEY (`AdminID_processor`) REFERENCES `administrator` (`PersonID`) ON DELETE CASCADE;
+ALTER TABLE `Claim`
+  ADD CONSTRAINT `Claim_ibfk_1` FOREIGN KEY (`ContactID`) REFERENCES `ContactRequest` (`ContactID`),
+  ADD CONSTRAINT `Claim_ibfk_2` FOREIGN KEY (`UserID_claimant`) REFERENCES `User` (`UserID`),
+  ADD CONSTRAINT `Claim_ibfk_3` FOREIGN KEY (`AdminID_processor`) REFERENCES `Administrator` (`AdminID`);
 
 --
--- Constraints for table `contact_request`
+-- Constraints for table `ContactRequest`
 --
-ALTER TABLE `contact_request`
-  ADD CONSTRAINT `contact_request_ibfk_1` FOREIGN KEY (`UserID_claimant`) REFERENCES `users` (`PersonID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `contact_request_ibfk_2` FOREIGN KEY (`PostID`) REFERENCES `feed_post` (`PostID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `contact_request_ibfk_3` FOREIGN KEY (`AdminID_reviewer`) REFERENCES `administrator` (`PersonID`) ON DELETE SET NULL;
+ALTER TABLE `ContactRequest`
+  ADD CONSTRAINT `ContactRequest_ibfk_1` FOREIGN KEY (`UserID_claimant`) REFERENCES `User` (`UserID`),
+  ADD CONSTRAINT `ContactRequest_ibfk_2` FOREIGN KEY (`PostID`) REFERENCES `FeedPost` (`PostID`),
+  ADD CONSTRAINT `ContactRequest_ibfk_3` FOREIGN KEY (`AdminID_reviewer`) REFERENCES `Administrator` (`AdminID`);
 
 --
--- Constraints for table `feed_post`
+-- Constraints for table `FeedPost`
 --
-ALTER TABLE `feed_post`
-  ADD CONSTRAINT `feed_post_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `report` (`ReportID`) ON DELETE CASCADE;
+ALTER TABLE `FeedPost`
+  ADD CONSTRAINT `FeedPost_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `Report` (`ReportID`);
 
 --
--- Constraints for table `found`
+-- Constraints for table `Found`
 --
-ALTER TABLE `found`
-  ADD CONSTRAINT `found_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `report` (`ReportID`) ON DELETE CASCADE;
+ALTER TABLE `Found`
+  ADD CONSTRAINT `Found_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `Report` (`ReportID`) ON DELETE CASCADE;
 
 --
--- Constraints for table `lost`
+-- Constraints for table `Lost`
 --
-ALTER TABLE `lost`
-  ADD CONSTRAINT `lost_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `report` (`ReportID`) ON DELETE CASCADE;
+ALTER TABLE `Lost`
+  ADD CONSTRAINT `Lost_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `Report` (`ReportID`) ON DELETE CASCADE;
 
 --
--- Constraints for table `lostitems`
+-- Constraints for table `Report`
 --
-ALTER TABLE `lostitems`
-  ADD CONSTRAINT `LostItems_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`PersonID`) ON DELETE CASCADE;
+ALTER TABLE `Report`
+  ADD CONSTRAINT `Report_ibfk_1` FOREIGN KEY (`UserID_submitter`) REFERENCES `User` (`UserID`),
+  ADD CONSTRAINT `Report_ibfk_2` FOREIGN KEY (`AdminID_reviewer`) REFERENCES `Administrator` (`AdminID`),
+  ADD CONSTRAINT `Report_ibfk_3` FOREIGN KEY (`ApprovalStatusID`) REFERENCES `ApprovalStatus` (`ApprovalStatusID`);
 
 --
--- Constraints for table `report`
+-- Constraints for table `User`
 --
-ALTER TABLE `report`
-  ADD CONSTRAINT `report_ibfk_1` FOREIGN KEY (`UserID_submitter`) REFERENCES `users` (`PersonID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `report_ibfk_2` FOREIGN KEY (`AdminID_reviewer`) REFERENCES `administrator` (`PersonID`) ON DELETE SET NULL,
-  ADD CONSTRAINT `report_ibfk_3` FOREIGN KEY (`ApprovalStatusID`) REFERENCES `approval_status` (`ApprovalStatusID`) ON DELETE SET NULL;
-
---
--- Constraints for table `report_images`
---
-ALTER TABLE `report_images`
-  ADD CONSTRAINT `report_images_ibfk_1` FOREIGN KEY (`ReportID`) REFERENCES `report` (`ReportID`) ON DELETE CASCADE;
-
---
--- Constraints for table `users`
---
-ALTER TABLE `users`
-  ADD CONSTRAINT `Users_ibfk_1` FOREIGN KEY (`PersonID`) REFERENCES `person` (`PersonID`) ON DELETE CASCADE;
+ALTER TABLE `User`
+  ADD CONSTRAINT `User_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `Person` (`PersonID`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

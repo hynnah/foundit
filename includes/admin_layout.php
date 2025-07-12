@@ -9,21 +9,24 @@
                     <span style="margin-left:8px; font-size:1.1em;">&#9662;</span>
                 </button>
                 <div class="dropdown-menu" id="userDropdown">
-                    <a href="../settings.php"><img src="../resources/settings.png" alt="Settings Icon">Settings</a>
+                    <a href="settings.php"><img src="../resources/settings.png" alt="Settings Icon">Settings</a>
                     <a href="../logout.php" class="logout"><img src="../resources/user-logout.png" alt="Logout Icon">Logout</a>
                 </div>
             </div>
             <a href="dashboard.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
-                <img src="../resources/home.png" alt="Home Icon">Post Requests
+                <img src="../resources/home.png" alt="Home Icon">Dashboard
+            </a>
+            <a href="log_found_item.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'log_found_item.php') ? 'active' : ''; ?>">
+                <img src="../resources/megaphone-magnifying-glass.png" alt="Log Found Item Icon">Log Found Item
             </a>
             <a href="found_items.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'found_items.php') ? 'active' : ''; ?>">
                 <img src="../resources/search.png" alt="Found Items Icon">Found Items
             </a>
-            <a href="report_lost_item.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'report_lost_item.php') ? 'active' : ''; ?>">
-                <img src="../resources/location-exclamation.png" alt="Report Lost Items Icon">Lost Items
+            <a href="review_reports.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'review_reports.php') ? 'active' : ''; ?>">
+                <img src="../resources/location-exclamation.png" alt="Review Reports Icon">Review Reports
             </a>
-            <a href="report_lost_item.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'report_lost_item.php') ? 'active' : ''; ?>">
-                <img src="../resources/claim.png" alt="Report Lost Items Icon">Claim Requests
+            <a href="manage_users.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'manage_users.php') ? 'active' : ''; ?>">
+                <img src="../resources/user.png" alt="Manage Users Icon">Manage Users
             </a>
             <a href="inbox.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'inbox.php') ? 'active' : ''; ?>">
                 <img src="../resources/env.png" alt="Inbox Icon">Inbox

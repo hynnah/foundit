@@ -1,459 +1,394 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['userId']) || empty($_SESSION['userId'])) {
-    header("Location: login.php");
-    exit();
-}
-
-$user_name = $_SESSION['userName'] ?? 'User';
-$content_header = "Report Lost Item";
-
-// Database connection
+require_once 'auth_check.php';
+require_once 'functions.php';
 require_once 'dbh.inc.php';
+
+$user_name = getUserName();
+$content_header = "Report Lost Item";
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data
-    $itemName = $_POST['itemName'];
-    $description = $_POST['description'];
-    $location = $_POST['location'];
+    $itemName = trim($_POST['itemName'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $location = trim($_POST['location'] ?? '');
     $userId = $_SESSION['userId'];
     
-    // Handle image upload
-    $imagePath = null;
-    if (isset($_FILES['itemImage']) && $_FILES['itemImage']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+    // Input validation
+    $errors = [];
+    
+    if (empty($itemName)) {
+        $errors[] = "Item name is required.";
+    } elseif (strlen($itemName) > 100) {
+        $errors[] = "Item name cannot exceed 100 characters.";
+    }
+    
+    if (empty($description)) {
+        $errors[] = "Description is required.";
+    } elseif (strlen($description) > 1000) {
+        $errors[] = "Description cannot exceed 1000 characters.";
+    }
+    
+    if (empty($location)) {
+        $errors[] = "Location is required.";
+    } elseif (strlen($location) > 255) {
+        $errors[] = "Location cannot exceed 255 characters.";
+    }
+    
+    // Validate image if uploaded
+    if (isset($_FILES['itemImage']) && $_FILES['itemImage']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
         
-        // Generate unique filename
-        $extension = pathinfo($_FILES['itemImage']['name'], PATHINFO_EXTENSION);
-        $filename = uniqid('item_', true) . '.' . $extension;
-        $destination = $uploadDir . $filename;
-        
-        // Move uploaded file
-        if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $destination)) {
-            $imagePath = $destination;
+        if ($_FILES['itemImage']['error'] !== UPLOAD_ERR_OK) {
+            $errors[] = "Error uploading image.";
+        } elseif (!in_array($_FILES['itemImage']['type'], $allowedTypes)) {
+            $errors[] = "Invalid image type. Only JPEG, PNG, GIF, and WebP are allowed.";
+        } elseif ($_FILES['itemImage']['size'] > $maxSize) {
+            $errors[] = "Image size cannot exceed 5MB.";
         }
     }
     
-    // Start transaction
-    mysqli_autocommit($connection, FALSE);
-    
-    try {
-        // Insert into report table first
-        $sql_report = "INSERT INTO report (UserID_submitter, report_type, item_name, description, incident_date, submission_date, ApprovalStatusID) 
-                      VALUES (?, 'lost', ?, ?, CURDATE(), NOW(), 1)";
-        
-        $stmt_report = mysqli_prepare($connection, $sql_report);
-        mysqli_stmt_bind_param($stmt_report, "iss", $userId, $itemName, $description);
-        
-        if (!mysqli_stmt_execute($stmt_report)) {
-            throw new Exception("Error inserting into report table: " . mysqli_error($connection));
-        }
-        
-        // Get the inserted report ID
-        $reportId = mysqli_insert_id($connection);
-        mysqli_stmt_close($stmt_report);
-        
-        // Insert into lost table
-        $sql_lost = "INSERT INTO lost (ReportID, location_last_seen) VALUES (?, ?)";
-        $stmt_lost = mysqli_prepare($connection, $sql_lost);
-        mysqli_stmt_bind_param($stmt_lost, "is", $reportId, $location);
-        
-        if (!mysqli_stmt_execute($stmt_lost)) {
-            throw new Exception("Error inserting into lost table: " . mysqli_error($connection));
-        }
-        mysqli_stmt_close($stmt_lost);
-        
-        if ($imagePath) {
-          
-            $sql_image = "UPDATE report SET image_path = ? WHERE ReportID = ?";
-            $stmt_image = mysqli_prepare($connection, $sql_image);
-            if ($stmt_image) {
-                mysqli_stmt_bind_param($stmt_image, "si", $imagePath, $reportId);
-                mysqli_stmt_execute($stmt_image);
-                mysqli_stmt_close($stmt_image);
-            }
-        }
-        
-        // Commit transaction
-        mysqli_commit($connection);
-        $success_message = "Your lost item report has been submitted successfully!";
-        
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        mysqli_rollback($connection);
-        $error_message = "Database error: " . $e->getMessage();
-    }
-    
-    // Restore autocommit
-    mysqli_autocommit($connection, TRUE);
-}
-?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoundIt - Report Lost Item</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
-    <style>
-        .main-wrapper {
-            padding: 40px;
-            min-height: 100vh;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-        }
-
-        .form-container {
-            background: rgba(255, 227, 142, 0.95);
-            border-radius: 20px;
-            padding: 50px;
-            width: 100%;
-            max-width: 700px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-            margin: 20px auto;
-        }
-
-        .form-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .form-header i {
-            width: 50px;
-            height: 40px;
-            color: #cb7f00;
-            margin-right: 15px;
-            font-size: 50px;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .form-header h1 {
-            font-size: 30px;
-            color: #333;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .form-group {
-            margin-bottom: 35px;
-        }
-
-        .form-group label {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            color: #333;
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        .form-group label i {
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
-            color: #333;
-            font-size: 16px;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 18px;
-            border: 2px solid #e1e1e1;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: #fff;
-            font-family: inherit;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #cb7f00;
-            box-shadow: 0 0 0 3px rgba(203, 127, 0, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        .image-upload-section {
-            position: relative;
-            margin-bottom: 35px;
-        }
-
-        .image-upload-label {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            color: #333;
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        .image-upload-label i {
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
-            color: #333;
-            font-size: 16px;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .image-upload-area {
-            border: 2px dashed #cb7f00;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            background: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .image-upload-area:hover {
-            background: #fef9f0;
-            border-color: #bd7800;
-        }
-
-        .image-upload-area.has-image {
-            border-style: solid;
-            background: #f8f9fa;
-        }
-
-        .upload-button {
-            background: #cb7f00;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 10px;
-        }
-
-        .upload-button:hover {
-            background: #bd7800;
-        }
-
-        .upload-text {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .image-preview {
-            display: none;
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-            margin: 10px auto;
-        }
-
-        .submit-button {
-            width: 100%;
-            padding: 20px;
-            background: linear-gradient(45deg, #cb7f00, #e89611);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 30px;
-        }
-
-        .submit-button:hover {
-            background: linear-gradient(45deg, #bd7800, #d48806);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(203, 127, 0, 0.3);
-        }
-
-        #imageInput {
-            display: none;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .main-wrapper {
-                padding: 20px;
+    if (!empty($errors)) {
+        $error_message = implode('<br>', $errors);
+    } else {
+        // Handle image upload
+        $imagePath = null;
+        if (isset($_FILES['itemImage']) && $_FILES['itemImage']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
             }
             
-            .form-container {
-                padding: 30px;
-                margin: 10px;
-            }
-
-            .form-header h1 {
-                font-size: 24px;
-            }
-
-            .form-header i {
-                font-size: 40px;
+            // Generate unique filename
+            $extension = pathinfo($_FILES['itemImage']['name'], PATHINFO_EXTENSION);
+            $filename = uniqid('item_', true) . '.' . $extension;
+            $destination = $uploadDir . $filename;
+            
+            // Move uploaded file
+            if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $destination)) {
+                $imagePath = $destination;
             }
         }
-    </style>
-</head>
-<body>
-    <!-- Please dont remove -->  
-    <?php
-    ob_start();
-    ?> 
+        
+        // Start transaction
+        mysqli_autocommit($connection, FALSE);
+        
+        try {
+            // Insert into report table first
+            $sql_report = "INSERT INTO Report (UserID_submitter, report_type, item_name, description, incident_date, submission_date, ApprovalStatusID) 
+                          VALUES (?, 'Lost', ?, ?, CURDATE(), NOW(), 1)";
+            
+            $stmt_report = mysqli_prepare($connection, $sql_report);
+            mysqli_stmt_bind_param($stmt_report, "iss", $userId, $itemName, $description);
+            
+            if (!mysqli_stmt_execute($stmt_report)) {
+                throw new Exception("Error inserting into report table: " . mysqli_error($connection));
+            }
+            
+            // Get the inserted report ID
+            $reportId = mysqli_insert_id($connection);
+            mysqli_stmt_close($stmt_report);
+            
+            // Insert into lost table
+            $sql_lost = "INSERT INTO Lost (ReportID, location_last_seen) VALUES (?, ?)";
+            $stmt_lost = mysqli_prepare($connection, $sql_lost);
+            mysqli_stmt_bind_param($stmt_lost, "is", $reportId, $location);
+            
+            if (!mysqli_stmt_execute($stmt_lost)) {
+                throw new Exception("Error inserting into lost table: " . mysqli_error($connection));
+            }
+            mysqli_stmt_close($stmt_lost);
+            
+            if ($imagePath) {
+                $sql_image = "UPDATE Report SET image_path = ? WHERE ReportID = ?";
+                $stmt_image = mysqli_prepare($connection, $sql_image);
+                if ($stmt_image) {
+                    mysqli_stmt_bind_param($stmt_image, "si", $imagePath, $reportId);
+                    mysqli_stmt_execute($stmt_image);
+                    mysqli_stmt_close($stmt_image);
+                }
+            }
+            
+            // Commit transaction
+            mysqli_commit($connection);
+            $success_message = "Your lost item report has been submitted successfully!";
+            
+        } catch (Exception $e) {
+            // Rollback transaction on error
+            mysqli_rollback($connection);
+            $error_message = "Database error: " . $e->getMessage();
+        }
+        
+        // Restore autocommit
+        mysqli_autocommit($connection, TRUE);
+    }
+}
 
-    <!-- Main content -->
-    <div class="main-wrapper">
-        <div class="form-container">
-            <div class="form-header">
-                <i class="fa-solid fa-bullhorn"></i>
-                <h1>REPORT YOUR LOST ITEM</h1>
-            </div>
+// Start output buffering to capture the page content
+ob_start();
+?>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<style>
+    .report-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .report-form {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .form-header h1 {
+        color: #cb7f00;
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    
+    .form-header p {
+        color: #666;
+        font-size: 1.1rem;
+    }
+    
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 600;
+        font-size: 16px;
+    }
+    
+    .form-group label i {
+        margin-right: 8px;
+        color: #cb7f00;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e1e1;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: #fff;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #cb7f00;
+        box-shadow: 0 0 0 3px rgba(203, 127, 0, 0.1);
+    }
+    
+    .form-group textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+    
+    .file-upload-wrapper {
+        position: relative;
+        border: 2px dashed #e1e1e1;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .file-upload-wrapper:hover {
+        border-color: #cb7f00;
+        background: rgba(203, 127, 0, 0.05);
+    }
+    
+    .file-upload-wrapper input[type="file"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+    
+    .file-upload-text {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .file-upload-icon {
+        font-size: 2rem;
+        color: #cb7f00;
+        margin-bottom: 10px;
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(45deg, #cb7f00, #e89611);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+    }
+    
+    .submit-btn:hover {
+        background: linear-gradient(45deg, #bd7800, #d48806);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(203, 127, 0, 0.3);
+    }
+    
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+    
+    @media (max-width: 768px) {
+        .report-container {
+            padding: 10px;
+        }
+        
+        .report-form {
+            padding: 20px;
+        }
+        
+        .form-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+<div class="report-container">
+    <div class="report-form">
+        <div class="form-header">
+            <h1><i class="fas fa-exclamation-triangle"></i> Report Lost Item</h1>
+            <p>Help us help you find your lost item by providing detailed information</p>
+        </div>
         
         <?php if (isset($success_message)): ?>
-            <div class="message success"><?php echo $success_message; ?></div>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+            </div>
         <?php endif; ?>
         
         <?php if (isset($error_message)): ?>
-            <div class="message error"><?php echo $error_message; ?></div>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+            </div>
         <?php endif; ?>
         
-        <form id="reportForm" method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="itemName">
-                    <i class="fa-solid fa-tag"></i>
-                    Item Name:
+                    <i class="fas fa-tag"></i> Item Name
                 </label>
-                <input type="text" id="itemName" name="itemName" placeholder="maximum 50 characters" maxlength="50" required>
+                <input type="text" id="itemName" name="itemName" 
+                       placeholder="What did you lose? (e.g., iPhone, Wallet, Keys)"
+                       value="<?php echo htmlspecialchars($_POST['itemName'] ?? ''); ?>" 
+                       required maxlength="100">
             </div>
-
+            
             <div class="form-group">
                 <label for="description">
-                    <i class="fa-solid fa-paperclip"></i>
-                    Description:
+                    <i class="fas fa-align-left"></i> Description
                 </label>
-                <textarea id="description" name="description" placeholder="maximum 100 characters" maxlength="100" required></textarea>
+                <textarea id="description" name="description" 
+                          placeholder="Provide a detailed description of your lost item (color, size, brand, distinguishing features, etc.)"
+                          required maxlength="1000"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
             </div>
-
-            <div class="image-upload-section">
-                <div class="image-upload-label">
-                    <i class="fa-solid fa-image"></i>
-                    Item Image (not required):
-                </div>
-                <div class="image-upload-area" onclick="document.getElementById('imageInput').click()">
-                    <div class="upload-content">
-                        <button type="button" class="upload-button">
-                            <i class="fa-solid fa-file"></i>
-                            Choose an image
-                        </button>
-                        <div class="upload-text" id="uploadText">No image selected</div>
-                        <img id="imagePreview" class="image-preview" alt="Preview">
-                    </div>
-                </div>
-                <input type="file" id="imageInput" name="itemImage" accept="image/*" onchange="handleImageUpload(event)">
-            </div>
-
+            
             <div class="form-group">
                 <label for="location">
-                    <i class="fa-solid fa-location-dot"></i>
-                    Location last seen:
+                    <i class="fas fa-map-marker-alt"></i> Last Known Location
                 </label>
-                <input type="text" id="location" name="location" placeholder="Where did you last see your item?" required>
+                <input type="text" id="location" name="location" 
+                       placeholder="Where did you last see/have your item?"
+                       value="<?php echo htmlspecialchars($_POST['location'] ?? ''); ?>" 
+                       required maxlength="255">
             </div>
-
-            <button type="submit" class="submit-button">
-                Submit Post Request
+            
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-camera"></i> Item Photo (Optional)
+                </label>
+                <div class="file-upload-wrapper">
+                    <input type="file" id="itemImage" name="itemImage" accept="image/*">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">
+                        Click to upload or drag and drop<br>
+                        <small>JPG, PNG, GIF, WebP up to 5MB</small>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-paper-plane"></i> Submit Report
             </button>
         </form>
     </div>
 </div>
 
-    <script>
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            const uploadText = document.getElementById('uploadText');
-            const imagePreview = document.getElementById('imagePreview');
-            const uploadArea = document.querySelector('.image-upload-area');
-            
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                    uploadText.textContent = `Selected: ${file.name}`;
-                    uploadArea.classList.add('has-image');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                imagePreview.style.display = 'none';
-                uploadText.textContent = 'No image selected';
-                uploadArea.classList.remove('has-image');
-            }
-        }
+<script>
+document.getElementById('itemImage').addEventListener('change', function(e) {
+    const wrapper = e.target.closest('.file-upload-wrapper');
+    const textDiv = wrapper.querySelector('.file-upload-text');
+    
+    if (e.target.files.length > 0) {
+        textDiv.innerHTML = `Selected: ${e.target.files[0].name}`;
+        wrapper.style.borderColor = '#cb7f00';
+        wrapper.style.background = 'rgba(203, 127, 0, 0.05)';
+    } else {
+        textDiv.innerHTML = 'Click to upload or drag and drop<br><small>JPG, PNG, GIF, WebP up to 5MB</small>';
+        wrapper.style.borderColor = '#e1e1e1';
+        wrapper.style.background = 'transparent';
+    }
+});
+</script>
 
-        // Character count indicators
-        document.getElementById('itemName').addEventListener('input', function() {
-            const remaining = 50 - this.value.length;
-            if (remaining < 10) {
-                this.style.borderColor = remaining < 5 ? '#e74c3c' : '#f39c12';
-            } else {
-                this.style.borderColor = '#e1e1e1';
-            }
-        });
-
-        document.getElementById('description').addEventListener('input', function() {
-            const remaining = 100 - this.value.length;
-            if (remaining < 20) {
-                this.style.borderColor = remaining < 10 ? '#e74c3c' : '#f39c12';
-            } else {
-                this.style.borderColor = '#e1e1e1';
-            }
-        });
-    </script>
-
-    <!-- Please dont remove -->  
-    <?php
-        $page_content = ob_get_clean();
-        include_once "includes/general_layout.php";
-    ?>
-</body>
-</html>
+<?php
+// Capture the page content and include the layout
+$page_content = ob_get_clean();
+include_once "includes/general_layout.php";
+?>

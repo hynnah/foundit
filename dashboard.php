@@ -1,9 +1,9 @@
 <?php
-session_start();
-
+require_once 'auth_check.php';
+require_once 'functions.php';
 require_once 'dbh.inc.php';
 
-$user_name = htmlspecialchars($_SESSION['userName'] ?? 'User');
+$user_name = htmlspecialchars(getUserName());
 $content_header = "Recent Posts";
 
 // Fetch recent reports (both lost and found)
@@ -12,10 +12,10 @@ $sql = "SELECT r.*,
                l.location_last_seen AS location, 
                f.location_found AS location,
                a.status_name AS approvalstatus
-        FROM report r
-        LEFT JOIN lost l ON r.ReportID = l.ReportID AND r.report_type = 'lost'
-        LEFT JOIN found f ON r.ReportID = f.ReportID AND r.report_type = 'found'
-        LEFT JOIN approvalstatus a ON r.ApprovalStatusID = a.ApprovalStatusID
+        FROM Report r
+        LEFT JOIN Lost l ON r.ReportID = l.ReportID AND r.report_type = 'Lost'
+        LEFT JOIN Found f ON r.ReportID = f.ReportID AND r.report_type = 'Found'
+        LEFT JOIN ApprovalStatus a ON r.ApprovalStatusID = a.ApprovalStatusID
         WHERE r.ApprovalStatusID = 2
         ORDER BY r.submission_date DESC
         LIMIT 10";
@@ -27,16 +27,11 @@ if ($result) {
     }
 }
 
+// Start output buffering to capture the page content
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoundIt - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<style>
         .feed-container {
             max-width: 1000px;
             margin: 0 auto;
@@ -60,9 +55,9 @@ if ($result) {
         }
         
         .posts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
             margin-top: 20px;
         }
         
@@ -72,21 +67,38 @@ if ($result) {
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: row;
+            min-height: 180px;
+            border: 2px solid rgba(203, 127, 0, 0.2);
         }
         
         .post-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: rgba(203, 127, 0, 0.4);
         }
         
         .post-image {
-            width: 100%;
-            height: 200px;
+            width: 220px;
+            height: 180px;
             object-fit: cover;
+            flex-shrink: 0;
+            border-right: 2px solid rgba(203, 127, 0, 0.2);
         }
         
         .post-details {
-            padding: 20px;
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 227, 142, 0.7));
+        }
+        
+        .post-content {
+            flex: 1;
+            margin-bottom: 15px;
         }
         
         .post-type {
@@ -122,10 +134,15 @@ if ($result) {
         
         .post-meta {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            margin-top: 15px;
+            gap: 20px;
             color: #666;
             font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(203, 127, 0, 0.2);
         }
         
         .post-meta i {
@@ -133,10 +150,10 @@ if ($result) {
             color: #cb7f00;
         }
         
-        .post-location, .post-date {
+        .post-location, .post-date, .post-submitter {
             display: flex;
             align-items: center;
-            margin-right: 15px;
+            gap: 6px;
         }
         
         .no-posts {
@@ -168,8 +185,26 @@ if ($result) {
         }
         
         @media (max-width: 768px) {
-            .posts-grid {
-                grid-template-columns: 1fr;
+            .post-card {
+                flex-direction: column;
+                min-height: auto;
+            }
+            
+            .post-image {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 2px solid rgba(203, 127, 0, 0.2);
+            }
+            
+            .post-meta {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .post-meta > div {
+                justify-content: center;
             }
             
             .feed-header h1 {
@@ -177,66 +212,94 @@ if ($result) {
             }
         }
     </style>
-</head>
-<body>
-    <!-- Please dont remove -->  
-    <?php
-    ob_start();
-    ?> 
 
-    <!-- Main content -->
-    <div class="feed-container">
-        <div class="feed-header">
-            <h1>Recent Lost & Found Items</h1>
-            <p>Check out the latest items reported in our community</p>
-        </div>
-        
-        <?php if (!empty($recent_reports)): ?>
-            <div class="posts-grid">
-                <?php foreach ($recent_reports as $report): ?>
-                    <div class="post-card">
-                        <?php if ($report['image_path']): ?>
-                            <img src="<?php echo htmlspecialchars($report['image_path']); ?>" alt="<?php echo htmlspecialchars($report['item_name']); ?>" class="post-image">
-                        <?php else: ?>
-                            <img src="images/default-item.jpg" alt="Default item image" class="post-image">
-                        <?php endif; ?>
+<!-- Main content -->
+<div class="feed-container">
+    <div class="feed-header">
+        <h1>Recent Lost & Found Items</h1>
+        <p>Check out the latest items reported in our community</p>
+    </div>
+    
+    <?php if (!empty($recent_reports)): ?>
+        <div class="posts-grid">
+            <?php foreach ($recent_reports as $report): ?>
+                <div class="post-card">
+                    <?php if ($report['image_path']): ?>
+                        <?php
+                        // Handle different image path formats
+                        $imagePath = $report['image_path'];
+                        $imageUrl = '';
                         
-                        <div class="post-details">
-                            <span class="post-type <?php echo htmlspecialchars($report['report_type']); ?>">
+                        // Check different possible locations
+                        $possiblePaths = [
+                            'uploads/' . $imagePath,
+                            'admin/uploads/' . $imagePath,
+                            $imagePath // if full path is stored
+                        ];
+                        
+                        foreach ($possiblePaths as $path) {
+                            if (file_exists($path)) {
+                                $imageUrl = $path;
+                                break;
+                            }
+                        }
+                        
+                        if (!$imageUrl) {
+                            $imageUrl = 'resources/search.png'; // fallback image
+                        }
+                        ?>
+                        <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
+                             alt="<?php echo htmlspecialchars($report['item_name']); ?>" 
+                             class="post-image"
+                             onerror="this.src='resources/search.png';"
+                             title="Image path: <?php echo htmlspecialchars($report['image_path']); ?>">
+                    <?php else: ?>
+                        <img src="resources/search.png" 
+                             alt="Default item image" 
+                             class="post-image"
+                             title="No image available">
+                    <?php endif; ?>
+                    
+                    <div class="post-details">
+                        <div class="post-content">
+                            <span class="post-type <?php echo strtolower($report['report_type']); ?>">
                                 <?php echo ucfirst(htmlspecialchars($report['report_type'])); ?>
                             </span>
                             <h3 class="post-title"><?php echo htmlspecialchars($report['item_name']); ?></h3>
-                            <p class="post-description"><?php echo htmlspecialchars($report['description']); ?></p>
-                            
-                            <div class="post-meta">
-                                <div class="post-location">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <?php echo htmlspecialchars($report['location'] ?? 'Unknown location'); ?>
-                                </div>
-                                <div class="post-date">
-                                    <i class="far fa-calendar-alt"></i>
-                                    <?php echo date('M j, Y', strtotime($report['incident_date'])); ?>
-                                </div>
+                            <p class="post-description"><?php echo htmlspecialchars(truncateText($report['description'], 150)); ?></p>
+                        </div>
+                        
+                        <div class="post-meta">
+                            <div class="post-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <?php echo htmlspecialchars($report['location'] ?? 'Unknown location'); ?>
+                            </div>
+                            <div class="post-date">
+                                <i class="far fa-calendar-alt"></i>
+                                <?php echo date('M j, Y', strtotime($report['incident_date'])); ?>
+                            </div>
+                            <div class="post-submitter">
+                                <i class="fas fa-user"></i>
+                                Submitted: <?php echo date('M j, Y', strtotime($report['submission_date'])); ?>
                             </div>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
-        <?php else: ?>
-            <div class="no-posts">
-                <p>No recent posts found. Be the first to report a lost or found item!</p>
-            </div>
-        <?php endif; ?>
-        
-        <a href="report_lost_item.php" class="report-btn">
-            <i class="fas fa-plus"></i> Report Lost Item
-        </a>
-    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <div class="no-posts">
+            <p>No recent posts found. Be the first to report a lost or found item!</p>
+        </div>
+    <?php endif; ?>
+    
+    <a href="report_lost_item.php" class="report-btn">
+        <i class="fas fa-plus"></i> Report Lost Item
+    </a>
+</div>
 
-    <!-- Please dont remove -->  
-    <?php
-        $page_content = ob_get_clean();
-        include_once "includes/general_layout.php";
-    ?>
-</body>
-</html>
+<?php
+// Capture the page content and include the layout
+$page_content = ob_get_clean();
+include_once "includes/general_layout.php";
+?>

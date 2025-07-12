@@ -1,4 +1,11 @@
-<link rel="stylesheet" href="style.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoundIt - <?php echo isset($content_header) ? htmlspecialchars($content_header) : 'Dashboard'; ?></title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
     <div class='main-content'>
         <div class='side-bar'>
@@ -21,7 +28,6 @@
             </a>
             <a href="report_lost_item.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'report_lost_item.php') ? 'active' : ''; ?>">
                 <img src="./resources/location-exclamation.png" alt="Report Lost Items Icon">Report
-            </a>
             </a>
             <a href="inbox.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'inbox.php') ? 'active' : ''; ?>">
                 <img src="./resources/env.png" alt="Inbox Icon">Inbox
@@ -59,3 +65,4 @@
     });
     </script>
 </body>
+</html>
