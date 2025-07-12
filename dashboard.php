@@ -8,24 +8,34 @@ $content_header = "Recent Posts";
 
 // Fetch recent reports (both lost and found)
 $recent_reports = [];
-$sql = "SELECT r.*, 
-               l.location_last_seen AS location, 
-               f.location_found AS location,
-               a.status_name AS approvalstatus
-        FROM report r
-        LEFT JOIN lost l ON r.ReportID = l.ReportID AND r.report_type = 'lost'
-        LEFT JOIN found f ON r.ReportID = f.ReportID AND r.report_type = 'found'
-        LEFT JOIN approvalstatus a ON r.ApprovalStatusID = a.ApprovalStatusID
-        WHERE r.ApprovalStatusID = 2
-        ORDER BY r.submission_date DESC
-        LIMIT 10";
 
-$result = mysqli_query($connection, $sql);
-if ($result) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $recent_reports[] = $row;
+if (isset($_SESSION['userId'])) {
+    $userId = $_SESSION['userId'];
+
+    $sql = "SELECT r.*, 
+               l.location_last_seen AS lost_location, 
+               f.location_found AS found_location,
+               a.status_name AS approvalstatus
+            FROM report r
+            LEFT JOIN lost l ON r.ReportID = l.ReportID AND r.report_type = 'lost'
+            LEFT JOIN found f ON r.ReportID = f.ReportID AND r.report_type = 'found'
+            LEFT JOIN approvalstatus a ON r.ApprovalStatusID = a.ApprovalStatusID
+            WHERE r.ApprovalStatusID = 2 AND r.UserID_submitter = ?
+            ORDER BY r.submission_date DESC
+            LIMIT 10";
+
+    $stmt = mysqli_prepare($connection, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $userId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $recent_reports[] = $row;
+        }
     }
 }
+
 
 ?>
 <!DOCTYPE html>
@@ -195,12 +205,12 @@ if ($result) {
             <div class="posts-grid">
                 <?php foreach ($recent_reports as $report): ?>
                     <div class="post-card">
-                        <?php if ($report['image_path']): ?>
-                            <img src="<?php echo htmlspecialchars($report['image_path']); ?>" alt="<?php echo htmlspecialchars($report['item_name']); ?>" class="post-image">
+                       <?php if ($report['image_path']): ?>
+                        <img src="<?php echo htmlspecialchars($report['image_path']); ?>" alt="..." class="post-image">
                         <?php else: ?>
-                            <img src="images/default-item.jpg" alt="Default item image" class="post-image">
+                            <img src="resources/defaultimage.png" alt="Default item image" class="post-image">
                         <?php endif; ?>
-                        
+
                         <div class="post-details">
                             <span class="post-type <?php echo htmlspecialchars($report['report_type']); ?>">
                                 <?php echo ucfirst(htmlspecialchars($report['report_type'])); ?>
@@ -211,8 +221,17 @@ if ($result) {
                             <div class="post-meta">
                                 <div class="post-location">
                                     <i class="fas fa-map-marker-alt"></i>
-                                    <?php echo htmlspecialchars($report['location'] ?? 'Unknown location'); ?>
+                                    <?php
+                                        if ($report['report_type'] === 'Lost') {
+                                            echo htmlspecialchars($report['lost_location'] ?? 'Unknown location');
+                                        } elseif ($report['report_type'] === 'Found') {
+                                            echo "Found at: " . htmlspecialchars($report['found_location'] ?? 'Unknown location');
+                                        } else {
+                                            echo "Unknown location";
+                                        }
+                                    ?>
                                 </div>
+
                                 <div class="post-date">
                                     <i class="far fa-calendar-alt"></i>
                                     <?php echo date('M j, Y', strtotime($report['incident_date'])); ?>
