@@ -1,0 +1,51 @@
+# Test files
+*test*
+*debug*
+*temp*
+*backup*
+*old*
+*copy*
+
+# Documentation files that are temporary
+*AUDIT*
+*CLEANUP*
+*DATABASE_FIXES*
+*EMAIL_INTEGRATION*
+*FILTER_FIXES*
+*PROFILE_PICTURE*
+
+# SQL migration files
+*migration*
+*migrate*
+add_*.sql
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# PHP files that are utilities/cleanup
+cleanup_*.php
+quick_fix*.php
+migrate_*.php
+system_test*.php
+db_schema_test*.php
+debug_*.php
+
+# Specific files to ignore
+found_items_new.php
+test_*.php
