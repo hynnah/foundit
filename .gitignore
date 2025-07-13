@@ -6,16 +6,18 @@
 *old*
 *copy*
 
-# Documentation files (NEVER include these)
-*.md
-README*
-*AUDIT*
-*CLEANUP*
-*DATABASE_FIXES*
-*EMAIL_INTEGRATION*
-*FILTER_FIXES*
-*PROFILE_PICTURE*
-*REPORT*
+# Documentation files that auto-generate (NOT the main README.md)
+*AUDIT*.md
+*CLEANUP*.md
+*DATABASE_FIXES*.md
+*EMAIL_INTEGRATION*.md
+*FILTER_FIXES*.md
+*PROFILE_PICTURE*.md
+*REPORT*.md
+*FEATURES*.md
+*LOG*.md
+*IMPLEMENTATION*.md
+*CHANGES*.md
 
 # Example and template files
 *.example.*
@@ -62,7 +64,6 @@ debug_*.php
 found_items_new.php
 test_*.php
 email_config.example.php
-README.md
 
 # Assets that VS Code creates
 assets/
