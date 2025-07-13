@@ -75,7 +75,7 @@ function logActivity($userId, $action, $details = '') {
  */
 function sendEmailNotification($to, $subject, $message, $isHTML = true) {
     require_once 'email_service.php';
-    global $emailService;
+    $emailService = new EmailService();
     
     return $emailService->sendEmail($to, $subject, $message, $isHTML);
 }
@@ -85,7 +85,7 @@ function sendEmailNotification($to, $subject, $message, $isHTML = true) {
  */
 function sendContactRequestNotification($to, $claimantName, $itemName, $status, $adminNotes = '') {
     require_once 'email_service.php';
-    global $emailService;
+    $emailService = new EmailService();
     
     return $emailService->sendContactRequestNotification($to, $claimantName, $itemName, $status, $adminNotes);
 }
@@ -95,7 +95,7 @@ function sendContactRequestNotification($to, $claimantName, $itemName, $status, 
  */
 function sendAdminNotification($adminEmail, $claimantName, $itemName, $contactId) {
     require_once 'email_service.php';
-    global $emailService;
+    $emailService = new EmailService();
     
     return $emailService->sendAdminNotification($adminEmail, $claimantName, $itemName, $contactId);
 }

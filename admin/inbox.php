@@ -173,6 +173,7 @@ $stats = mysqli_fetch_assoc($stats_result);
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            position: relative;
         }
         
         .btn {
@@ -190,6 +191,7 @@ $stats = mysqli_fetch_assoc($stats_result);
         .btn-danger { background: #dc3545; color: white; }
         .btn-secondary { background: #6c757d; color: white; }
         .btn-warning { background: #ffc107; color: #212529; }
+        .btn-info { background: #17a2b8; color: white; }
         
         .btn:hover {
             opacity: 0.9;
@@ -258,6 +260,67 @@ $stats = mysqli_fetch_assoc($stats_result);
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        
+        /* Rejection Dropdown Styles */
+        .rejection-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .rejection-dropdown-toggle {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .rejection-dropdown-toggle:hover {
+            background: #c82333;
+        }
+        
+        .rejection-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 250px;
+            display: none;
+            margin-top: 2px;
+        }
+        
+        .rejection-dropdown-menu.show {
+            display: block;
+        }
+        
+        .rejection-dropdown-item {
+            display: block;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .rejection-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .rejection-dropdown-item:hover {
+            background: #f8f9fa;
+            color: #dc3545;
         }
         
         /* Email Modal Styles */
@@ -359,33 +422,6 @@ $stats = mysqli_fetch_assoc($stats_result);
             border-top: 1px solid #eee;
         }
         
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
-        
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #545b62;
-        }
-        
         .email-status {
             padding: 10px;
             margin: 10px 0;
@@ -417,11 +453,6 @@ $stats = mysqli_fetch_assoc($stats_result);
         .loading {
             opacity: 0.6;
             pointer-events: none;
-        }
-        
-        .btn-info {
-            background: #17a2b8;
-            color: white;
         }
         
         /* Notification Styles */
@@ -617,7 +648,20 @@ $stats = mysqli_fetch_assoc($stats_result);
                             <?php if ($row['review_status'] === 'Pending'): ?>
                                 <a href="review_contact_request.php?id=<?php echo $row['ContactID']; ?>" class="btn btn-primary">Review Request</a>
                                 <button type="button" class="btn btn-success quick-approve" data-contact-id="<?php echo $row['ContactID']; ?>">Quick Approve</button>
-                                <button type="button" class="btn btn-danger quick-reject" data-contact-id="<?php echo $row['ContactID']; ?>">Quick Reject</button>
+                                <div class="rejection-dropdown">
+                                    <button type="button" class="btn btn-danger rejection-dropdown-toggle" data-contact-id="<?php echo $row['ContactID']; ?>" data-claimant-name="<?php echo htmlspecialchars($row['claimant_name']); ?>">
+                                        Quick Reject ▼
+                                    </button>
+                                    <div class="rejection-dropdown-menu">
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="insufficient_proof">Insufficient Proof of Ownership</a>
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="need_more_info">Need More Information</a>
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="description_mismatch">Description Doesn't Match Item</a>
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="already_claimed">Item Already Claimed</a>
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="invalid_claim">Invalid or Fraudulent Claim</a>
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="missing_documents">Missing Required Documents</a>
+                                        <a href="#" class="rejection-dropdown-item reject-reason" data-reason="other">Other (specify reason)...</a>
+                                    </div>
+                                </div>
                             <?php elseif ($row['review_status'] === 'Approved' && !$row['claim_status']): ?>
                                 <a href="create_claim.php?contact_id=<?php echo $row['ContactID']; ?>" class="btn btn-warning">Create Claim</a>
                             <?php elseif ($row['claim_status'] === 'Processing'): ?>
@@ -768,104 +812,92 @@ $stats = mysqli_fetch_assoc($stats_result);
             window.lastActivity = Date.now();
         });
         
-        // Handle quick approve/reject buttons
+        // Handle rejection dropdown toggles
         document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('quick-approve') || e.target.classList.contains('quick-reject')) {
+            // Check if the clicked element is a rejection dropdown button or its child
+            let target = e.target;
+            if (target.classList.contains('rejection-dropdown-toggle') || target.closest('.rejection-dropdown-toggle')) {
+                e.preventDefault();
+                
+                // Get the actual dropdown button
+                const button = target.classList.contains('rejection-dropdown-toggle') ? target : target.closest('.rejection-dropdown-toggle');
+                const dropdown = button.closest('.rejection-dropdown');
+                const menu = dropdown.querySelector('.rejection-dropdown-menu');
+                
+                // Close all other rejection dropdowns
+                document.querySelectorAll('.rejection-dropdown-menu').forEach(m => {
+                    if (m !== menu) {
+                        m.classList.remove('show');
+                    }
+                });
+                
+                // Toggle current dropdown
+                menu.classList.toggle('show');
+                
+                // Add visual feedback
+                if (menu.classList.contains('show')) {
+                    button.style.backgroundColor = '#c82333';
+                } else {
+                    button.style.backgroundColor = '#dc3545';
+                }
+            }
+            
+            // Handle rejection dropdown item clicks
+            if (e.target.classList.contains('reject-reason')) {
+                e.preventDefault();
+                const dropdown = e.target.closest('.rejection-dropdown');
+                const dropdownToggle = dropdown.querySelector('.rejection-dropdown-toggle');
+                const contactId = dropdownToggle.getAttribute('data-contact-id');
+                const claimantName = dropdownToggle.getAttribute('data-claimant-name');
+                const reason = e.target.getAttribute('data-reason');
+                const reasonText = e.target.textContent;
+                
+                // Close dropdown and reset button color
+                dropdown.querySelector('.rejection-dropdown-menu').classList.remove('show');
+                dropdownToggle.style.backgroundColor = '#dc3545';
+                
+                // Handle rejection
+                handleQuickReject(contactId, claimantName, reason, reasonText);
+            }
+            
+            // Handle quick approve
+            if (e.target.classList.contains('quick-approve')) {
                 const contactId = e.target.getAttribute('data-contact-id');
-                const action = e.target.classList.contains('quick-approve') ? 'approve' : 'reject';
-                const actionText = action === 'approve' ? 'approve' : 'reject';
                 const button = e.target;
                 const originalText = button.textContent;
                 
-                console.log('Quick action triggered:', { contactId, action, actionText });
-                
-                if (confirm(`Are you sure you want to ${actionText} this contact request?`)) {
+                if (confirm('Are you sure you want to approve this contact request?')) {
                     // Disable button and show loading state
                     button.disabled = true;
-                    button.textContent = `${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ing...`;
+                    button.textContent = 'Approving...';
                     button.style.opacity = '0.6';
                     
                     const formData = new FormData();
                     formData.append('contact_id', contactId);
-                    formData.append('action', action);
-                    formData.append('admin_notes', `Quick ${actionText} from inbox`);
+                    formData.append('action', 'approve');
+                    formData.append('admin_notes', 'Quick approve from inbox');
                     formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
-                    
-                    console.log('Sending request with data:', {
-                        contact_id: contactId,
-                        action: action,
-                        admin_notes: `Quick ${actionText} from inbox`
-                    });
                     
                     fetch('handle_contact_request.php', {
                         method: 'POST',
                         body: formData
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.text();
-                    })
-                    .then(text => {
-                        let data;
-                        try {
-                            data = JSON.parse(text);
-                        } catch (e) {
-                            console.error('Raw response:', text);
-                            throw new Error('Invalid JSON response from server');
-                        }
-                        
+                    .then(response => response.json())
+                    .then(data => {
                         if (data.success) {
-                            // Show success feedback
                             showNotification('success', data.message);
-                            
-                            // Update the card immediately
-                            const card = button.closest('.request-card');
-                            const statusBadge = card.querySelector('.status-badge');
-                            const actionsContainer = card.querySelector('.request-actions');
-                            
-                            // Update status badge
-                            statusBadge.className = `status-badge status-${data.status.toLowerCase()}`;
-                            statusBadge.textContent = data.status;
-                            
-                            // Update card data attribute
-                            card.setAttribute('data-status', data.status);
-                            
-                            // Get claimant name safely
-                            const claimantNameElement = card.querySelector('.meta-item:first-child span:last-child');
-                            const claimantName = claimantNameElement ? claimantNameElement.textContent : 'Unknown';
-                            
-                            // Update actions
-                            if (data.status === 'Approved') {
-                                actionsContainer.innerHTML = `
-                                    <a href="create_claim.php?contact_id=${contactId}" class="btn btn-warning">Create Claim</a>
-                                    <a href="view_contact_request.php?id=${contactId}" class="btn btn-secondary">View Details</a>
-                                    <button type="button" class="btn btn-info send-email-btn" data-contact-id="${contactId}" data-claimant-name="${claimantName}">Send Email</button>
-                                `;
-                            } else {
-                                actionsContainer.innerHTML = `
-                                    <a href="view_contact_request.php?id=${contactId}" class="btn btn-secondary">View Details</a>
-                                    <button type="button" class="btn btn-info send-email-btn" data-contact-id="${contactId}" data-claimant-name="${claimantName}">Send Email</button>
-                                `;
-                            }
-                            
-                            // Remove urgent styling
-                            card.classList.remove('urgent');
-                            
+                            // Update UI as needed
+                            location.reload();
                         } else {
-                            throw new Error(data.message || 'Unknown error occurred');
+                            showNotification('error', data.message || 'An error occurred');
+                            button.disabled = false;
+                            button.textContent = originalText;
+                            button.style.opacity = '1';
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        console.error('Button element:', button);
-                        console.error('Contact ID:', contactId);
-                        console.error('Action:', action);
-                        
-                        showNotification('error', 'Error: ' + error.message);
-                        
-                        // Reset button state
+                        showNotification('error', 'An error occurred while processing the request');
                         button.disabled = false;
                         button.textContent = originalText;
                         button.style.opacity = '1';
@@ -881,6 +913,59 @@ $stats = mysqli_fetch_assoc($stats_result);
                 openEmailModal(contactId, claimantName);
             }
         });
+        
+        // Close rejection dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.rejection-dropdown')) {
+                document.querySelectorAll('.rejection-dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+                // Reset button colors
+                document.querySelectorAll('.rejection-dropdown-toggle').forEach(button => {
+                    button.style.backgroundColor = '#dc3545';
+                });
+            }
+        });
+        
+        function handleQuickReject(contactId, claimantName, reason, reasonText) {
+            let adminNotes = reasonText;
+            
+            // If "Other" is selected, prompt for custom reason
+            if (reason === 'other') {
+                const customReason = prompt('Please specify the reason for rejection:');
+                if (!customReason || customReason.trim() === '') {
+                    return; // User cancelled or entered empty reason
+                }
+                adminNotes = customReason.trim();
+            }
+            
+            // Confirm rejection
+            if (confirm(`Are you sure you want to reject this contact request?\n\nReason: ${adminNotes}`)) {
+                const formData = new FormData();
+                formData.append('contact_id', contactId);
+                formData.append('action', 'reject');
+                formData.append('admin_notes', adminNotes);
+                formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
+                
+                fetch('handle_contact_request.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('success', data.message);
+                        location.reload();
+                    } else {
+                        showNotification('error', data.message || 'An error occurred');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('error', 'An error occurred while processing the rejection');
+                });
+            }
+        }
         
         function openEmailModal(contactId, claimantName) {
             document.getElementById('modalContactId').value = contactId;

@@ -56,8 +56,8 @@ if (isset($_POST['signup-submit'])) {
         mysqli_stmt_execute($stmt);
         $personId = mysqli_insert_id($connection);
 
-        // Insert into Users table
-        $sql = "INSERT INTO user (UserID, role) VALUES (?, ?)";
+        // Insert into User table
+        $sql = "INSERT INTO User (UserID, role) VALUES (?, ?)";
         $stmt = mysqli_stmt_init($connection);
         if (!mysqli_stmt_prepare($stmt, $sql)) {
             header("Location: register.php?error=sqlerror");

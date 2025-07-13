@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $itemName = trim($_POST['itemName'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $location = trim($_POST['location'] ?? '');
+    $incidentDate = $_POST['incidentDate'] ?? '';
     $userId = $_SESSION['userId'];
     
     // Input validation
@@ -33,6 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Location is required.";
     } elseif (strlen($location) > 255) {
         $errors[] = "Location cannot exceed 255 characters.";
+    }
+    
+    if (empty($incidentDate)) {
+        $errors[] = "Date lost is required.";
+    } else {
+        // Validate date format and ensure it's not in the future
+        $date = DateTime::createFromFormat('Y-m-d', $incidentDate);
+        if (!$date || $date->format('Y-m-d') !== $incidentDate) {
+            $errors[] = "Invalid date format.";
+        } elseif ($date > new DateTime()) {
+            $errors[] = "Date lost cannot be in the future.";
+        }
     }
     
     // Validate image if uploaded
@@ -77,10 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             // Insert into report table first
             $sql_report = "INSERT INTO Report (UserID_submitter, report_type, item_name, description, incident_date, submission_date, ApprovalStatusID) 
-                          VALUES (?, 'Lost', ?, ?, CURDATE(), NOW(), 1)";
+                          VALUES (?, 'Lost', ?, ?, ?, NOW(), 1)";
             
             $stmt_report = mysqli_prepare($connection, $sql_report);
-            mysqli_stmt_bind_param($stmt_report, "iss", $userId, $itemName, $description);
+            mysqli_stmt_bind_param($stmt_report, "isss", $userId, $itemName, $description, $incidentDate);
             
             if (!mysqli_stmt_execute($stmt_report)) {
                 throw new Exception("Error inserting into report table: " . mysqli_error($connection));
@@ -345,6 +358,15 @@ ob_start();
                        placeholder="Where did you last see/have your item?"
                        value="<?php echo htmlspecialchars($_POST['location'] ?? ''); ?>" 
                        required maxlength="255">
+            </div>
+            
+            <div class="form-group">
+                <label for="incidentDate">
+                    <i class="fas fa-calendar"></i> Date Lost
+                </label>
+                <input type="date" id="incidentDate" name="incidentDate" 
+                       value="<?php echo htmlspecialchars($_POST['incidentDate'] ?? ''); ?>" 
+                       required max="<?php echo date('Y-m-d'); ?>">
             </div>
             
             <div class="form-group">

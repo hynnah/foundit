@@ -264,8 +264,8 @@ ob_start();
                                 </span>
                             </td>
                             <td>
-                                <a href="contact_owner.php?post_id=<?php echo $row['PostID']; ?>" class="contact-btn">
-                                    <i class="fas fa-envelope"></i> Contact Owner
+                                <a href="view_item_details.php?post_id=<?php echo $row['PostID']; ?>" class="contact-btn" style="background: #007bff;">
+                                    <i class="fas fa-eye"></i> View Details
                                 </a>
                             </td>
                         </tr>

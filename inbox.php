@@ -206,6 +206,17 @@ ob_start();
             margin-bottom: 10px;
             color: #333;
         }
+        
+        /* Special styling for rejection reasons */
+        .request-card[data-status="Rejected"] .details-section {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .request-card[data-status="Rejected"] .details-section h4 {
+            color: #721c24;
+            font-weight: bold;
+        }
     </style>
 
 <div class="inbox-container">
@@ -251,7 +262,7 @@ ob_start();
     
     <?php if (mysqli_num_rows($result) > 0): ?>
         <?php while ($row = mysqli_fetch_assoc($result)): ?>
-            <div class="request-card">
+            <div class="request-card" data-status="<?php echo htmlspecialchars($row['review_status']); ?>">
                 <div class="request-header">
                     <div class="request-title"><?php echo htmlspecialchars($row['item_name']); ?></div>
                     <div class="status-badge status-<?php echo strtolower($row['review_status']); ?>">
@@ -282,7 +293,7 @@ ob_start();
                     
                     <?php if (!$isAdmin && isset($row['review_notes']) && $row['review_notes']): ?>
                         <div class="details-section">
-                            <h4>Admin Review Notes:</h4>
+                            <h4><?php echo $row['review_status'] === 'Rejected' ? 'Rejection Reason:' : 'Admin Review Notes:'; ?></h4>
                             <p><?php echo htmlspecialchars($row['review_notes']); ?></p>
                         </div>
                     <?php endif; ?>

@@ -110,13 +110,14 @@ try {
         
         // If approved, create claim record
         if ($action === 'approve') {
-            $sql_claim = "INSERT INTO Claim (ContactID, claim_status, claim_date) VALUES (?, 'Approved', NOW())";
+            $sql_claim = "INSERT INTO Claim (ContactID, UserID_claimant, AdminID_processor, claim_date, claim_status) 
+                         VALUES (?, ?, ?, NOW(), 'Processing')";
             $stmt_claim = mysqli_prepare($connection, $sql_claim);
             if (!$stmt_claim) {
                 throw new Exception('Failed to prepare claim query: ' . mysqli_error($connection));
             }
             
-            mysqli_stmt_bind_param($stmt_claim, "i", $contactId);
+            mysqli_stmt_bind_param($stmt_claim, "iii", $contactId, $contact['UserID_claimant'], $adminId);
             
             if (!mysqli_stmt_execute($stmt_claim)) {
                 throw new Exception('Failed to create claim record: ' . mysqli_stmt_error($stmt_claim));

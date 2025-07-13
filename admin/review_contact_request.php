@@ -15,6 +15,49 @@ if (!$contactId || !is_numeric($contactId)) {
     exit;
 }
 
+// Get contact request details first
+$sql = "SELECT cr.*, 
+               p_claimant.name as claimant_name,
+               p_claimant.email as claimant_email,
+               p_claimant.phone_number as claimant_phone,
+               u_claimant.role as claimant_role,
+               r.item_name,
+               r.description as item_description,
+               r.report_type,
+               l.location_last_seen,
+               f.location_found,
+               r.incident_date,
+               r.image_path,
+               fp.PostID,
+               p_submitter.name as submitter_name,
+               p_submitter.email as submitter_email,
+               u_submitter.role as submitter_role,
+               p_admin.name as reviewer_name
+        FROM ContactRequest cr
+        JOIN User u_claimant ON cr.UserID_claimant = u_claimant.UserID
+        JOIN Person p_claimant ON u_claimant.UserID = p_claimant.PersonID
+        JOIN FeedPost fp ON cr.PostID = fp.PostID
+        JOIN Report r ON fp.ReportID = r.ReportID
+        JOIN User u_submitter ON r.UserID_submitter = u_submitter.UserID
+        JOIN Person p_submitter ON u_submitter.UserID = p_submitter.PersonID
+        LEFT JOIN Lost l ON r.ReportID = l.ReportID
+        LEFT JOIN Found f ON r.ReportID = f.ReportID
+        LEFT JOIN Administrator a ON cr.AdminID_reviewer = a.AdminID
+        LEFT JOIN Person p_admin ON a.AdminID = p_admin.PersonID
+        WHERE cr.ContactID = ?";
+
+$stmt = mysqli_prepare($connection, $sql);
+mysqli_stmt_bind_param($stmt, "i", $contactId);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+
+if (!$result || mysqli_num_rows($result) === 0) {
+    header("Location: inbox.php");
+    exit;
+}
+
+$contact_request = mysqli_fetch_assoc($result);
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
@@ -73,49 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
-
-// Get contact request details
-$sql = "SELECT cr.*, 
-               p_claimant.name as claimant_name,
-               p_claimant.email as claimant_email,
-               p_claimant.phone_number as claimant_phone,
-               u_claimant.role as claimant_role,
-               r.item_name,
-               r.description as item_description,
-               r.report_type,
-               l.location_last_seen,
-               f.location_found,
-               r.incident_date,
-               r.image_path,
-               fp.PostID,
-               p_submitter.name as submitter_name,
-               p_submitter.email as submitter_email,
-               u_submitter.role as submitter_role,
-               p_admin.name as reviewer_name
-        FROM ContactRequest cr
-        JOIN User u_claimant ON cr.UserID_claimant = u_claimant.UserID
-        JOIN Person p_claimant ON u_claimant.UserID = p_claimant.PersonID
-        JOIN FeedPost fp ON cr.PostID = fp.PostID
-        JOIN Report r ON fp.ReportID = r.ReportID
-        JOIN User u_submitter ON r.UserID_submitter = u_submitter.UserID
-        JOIN Person p_submitter ON u_submitter.UserID = p_submitter.PersonID
-        LEFT JOIN Lost l ON r.ReportID = l.ReportID AND r.report_type = 'Lost'
-        LEFT JOIN Found f ON r.ReportID = f.ReportID AND r.report_type = 'Found'
-        LEFT JOIN User u_admin ON cr.AdminID_reviewer = u_admin.UserID
-        LEFT JOIN Person p_admin ON u_admin.UserID = p_admin.PersonID
-        WHERE cr.ContactID = ?";
-
-$stmt = mysqli_prepare($connection, $sql);
-mysqli_stmt_bind_param($stmt, "i", $contactId);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
-
-if (!$result || mysqli_num_rows($result) === 0) {
-    header("Location: inbox.php");
-    exit;
-}
-
-$contact_request = mysqli_fetch_assoc($result);
 
 // Note: Verification questions feature not implemented in current database schema
 ?>

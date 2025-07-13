@@ -25,10 +25,7 @@ $location = trim($_POST['location'] ?? '');
 $incidentDate = $_POST['incident_date'] ?? '';
 $userId = getUserId();
 
-// Critical authorization check
-if ($reportType === 'Found' && !isAdmin()) {
-    die("Unauthorized: Only administrators can submit found item reports.");
-}
+// Note: Both users and admins can submit found item reports
 
 // Input validation
 $errors = [];
@@ -72,7 +69,16 @@ if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] !== UPLOAD_ER
 
 if (!empty($errors)) {
     $errorString = implode('|', $errors);
-    header("Location: " . ($reportType === 'Found' ? 'admin/log_found_item.php' : 'report_lost_item.php') . "?error=" . urlencode($errorString));
+    if ($reportType === 'Found') {
+        // Check if user is admin to determine redirect
+        if (isAdmin()) {
+            header("Location: admin/log_found_item.php?error=" . urlencode($errorString));
+        } else {
+            header("Location: dashboard.php?error=" . urlencode($errorString));
+        }
+    } else {
+        header("Location: report_lost_item.php?error=" . urlencode($errorString));
+    }
     exit();
 }
 
@@ -90,7 +96,15 @@ if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ER
     if (move_uploaded_file($_FILES['item_image']['tmp_name'], $destination)) {
         $imagePath = $destination;
     } else {
-        header("Location: " . ($reportType === 'Found' ? 'admin/log_found_item.php' : 'report_lost_item.php') . "?error=upload_failed");
+        if ($reportType === 'Found') {
+            if (isAdmin()) {
+                header("Location: admin/log_found_item.php?error=upload_failed");
+            } else {
+                header("Location: dashboard.php?error=upload_failed");
+            }
+        } else {
+            header("Location: report_lost_item.php?error=upload_failed");
+        }
         exit();
     }
 }
@@ -99,14 +113,15 @@ if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] === UPLOAD_ER
 mysqli_autocommit($connection, FALSE);
 
 try {
-    // For Found items, admin is both submitter and reviewer, and it's auto-approved
-    if ($reportType === 'Found') {
+    // Different logic for admins vs regular users
+    if (isAdmin()) {
+        // Admins can approve their own reports immediately
         $sql_report = "INSERT INTO Report (UserID_submitter, AdminID_reviewer, report_type, item_name, description, incident_date, submission_date, ApprovalStatusID, image_path) 
                       VALUES (?, ?, ?, ?, ?, ?, NOW(), 2, ?)";
         $stmt_report = mysqli_prepare($connection, $sql_report);
         mysqli_stmt_bind_param($stmt_report, "iisssss", $userId, $userId, $reportType, $itemName, $description, $incidentDate, $imagePath);
     } else {
-        // For Lost items, user submits and it's pending approval
+        // Regular users submit reports that need admin approval
         $sql_report = "INSERT INTO Report (UserID_submitter, report_type, item_name, description, incident_date, submission_date, ApprovalStatusID, image_path) 
                       VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
         $stmt_report = mysqli_prepare($connection, $sql_report);
