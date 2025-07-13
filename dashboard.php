@@ -292,7 +292,13 @@ ob_start();
                         <div class="post-meta">
                             <div class="post-location">
                                 <i class="fas fa-map-marker-alt"></i>
-                                <?php echo htmlspecialchars($report['location'] ?? 'Unknown location'); ?>
+                                <?php
+                                    if ($report['report_type'] === 'Lost') {
+                                        echo "Last seen at: " . htmlspecialchars($report['lost_location'] ?? 'Unknown location');
+                                    } else {
+                                        echo "Unknown location";
+                                    }
+                                ?>
                             </div>
                             <div class="post-date">
                                 <i class="far fa-calendar-alt"></i>
