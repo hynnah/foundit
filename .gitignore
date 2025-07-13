@@ -6,22 +6,33 @@
 *old*
 *copy*
 
-# Documentation files that are temporary
+# Documentation files (NEVER include these)
+*.md
+README*
 *AUDIT*
 *CLEANUP*
 *DATABASE_FIXES*
 *EMAIL_INTEGRATION*
 *FILTER_FIXES*
 *PROFILE_PICTURE*
+*REPORT*
+
+# Example and template files
+*.example.*
+*example*
+*template*
 
 # SQL migration files
 *migration*
 *migrate*
 add_*.sql
+migrate_*.php
 
-# Log files
+# Log files and directories
 *.log
 logs/
+admin/logs/
+/logs/
 
 # Temporary files
 *.tmp
@@ -46,6 +57,13 @@ system_test*.php
 db_schema_test*.php
 debug_*.php
 
-# Specific files to ignore
+# Specific files to ignore (PERMANENT)
 found_items_new.php
 test_*.php
+email_config.example.php
+README.md
+
+# Assets that VS Code creates
+assets/
+css/
+js/
