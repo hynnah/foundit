@@ -46,8 +46,9 @@ admin/logs/
 Thumbs.db
 
 # IDE files
-.vscode/settings.json
+.vscode/
 .idea/
+*.code-workspace
 
 # PHP files that are utilities/cleanup
 cleanup_*.php
