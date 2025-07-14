@@ -299,9 +299,9 @@ $csrf_token = generateCSRFToken();
                 
                 <div class="form-group">
                     <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" maxlength="20"
+                    <input type="tel" id="phone" name="phone" maxlength="20" pattern="[0-9]+" title="Please enter numbers only"
                            value="<?php echo htmlspecialchars($user_data['phone_number'] ?? ''); ?>"
-                           placeholder="e.g., 09123456789">
+                           placeholder="e.g., 09123456789 (numbers only)">
                 </div>
                 
                 <button type="submit" class="submit-btn">Update Profile</button>
@@ -398,6 +398,12 @@ $csrf_token = generateCSRFToken();
                         return false;
                     }
                 }
+            });
+            
+            // Phone number validation
+            document.getElementById('phone').addEventListener('input', function(e) {
+                // Remove any non-digit characters
+                this.value = this.value.replace(/[^0-9]/g, '');
             });
         });
     </script>

@@ -109,7 +109,31 @@ ob_start();
         height: 300px;
         object-fit: cover;
         border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        border: 2px solid #e0e0e0;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .item-image:hover {
+        border-color: #cb7f00;
+        box-shadow: 0 6px 24px rgba(203, 127, 0, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .item-image.found-item-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    
+    .item-image.found-item-placeholder:hover {
+        border-color: #cb7f00;
+        box-shadow: 0 6px 24px rgba(203, 127, 0, 0.2);
+        transform: translateY(-2px);
     }
     
     .item-info-section {
@@ -262,7 +286,7 @@ ob_start();
         
         <div class="item-content">
             <div class="item-image-section">
-                <?php if ($item['image_path']): ?>
+                <?php if ($item['image_path'] && $item['report_type'] === 'Lost'): ?>
                     <?php
                     // Handle different image path formats
                     $imagePath = $item['image_path'];
@@ -290,6 +314,11 @@ ob_start();
                          alt="<?php echo htmlspecialchars($item['item_name']); ?>" 
                          class="item-image"
                          onerror="this.src='resources/search.png';">
+                <?php elseif ($item['report_type'] === 'Found'): ?>
+                    <div class="item-image found-item-placeholder">
+                        <i class="fas fa-question-circle" style="font-size: 6rem; color: #666; margin-bottom: 20px;"></i>
+                        <p style="margin: 0; font-size: 1.1rem; color: #666; text-align: center; font-weight: 500;">Contact Administrator<br>for Image Details</p>
+                    </div>
                 <?php else: ?>
                     <img src="resources/search.png" 
                          alt="Default item image" 
@@ -354,7 +383,7 @@ ob_start();
                     
                     <?php if ($item['report_type'] === 'Found'): ?>
                         <a href="contact_owner.php?post_id=<?php echo $item['PostID']; ?>" class="btn btn-primary">
-                            <i class="fas fa-envelope"></i> Contact Owner
+                            <i class="fas fa-envelope"></i> Contact Administrator
                         </a>
                     <?php endif; ?>
                     

@@ -145,28 +145,31 @@ ob_start();
 <style>
     .report-container {
         max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
+        margin: 60px auto;
+        padding: 40px 20px;
+        min-height: calc(100vh - 120px);
     }
     
     .report-form {
         background: white;
-        padding: 30px;
+        padding: 40px;
         border-radius: 15px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+        margin-bottom: 40px;
     }
     
     .form-header {
         text-align: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
+        margin-bottom: 40px;
+        padding-bottom: 25px;
         border-bottom: 2px solid #f0f0f0;
     }
     
     .form-header h1 {
         color: #cb7f00;
         font-size: 2rem;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
     }
     
     .form-header p {
@@ -175,8 +178,8 @@ ob_start();
     }
     
     .alert {
-        padding: 15px;
-        margin-bottom: 20px;
+        padding: 20px;
+        margin-bottom: 25px;
         border-radius: 8px;
         font-weight: 500;
     }
@@ -194,20 +197,20 @@ ob_start();
     }
     
     .form-group {
-        margin-bottom: 25px;
+        margin-bottom: 30px;
     }
     
     .form-group label {
         display: flex;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         color: #333;
         font-weight: 600;
         font-size: 16px;
     }
     
     .form-group label i {
-        margin-right: 8px;
+        margin-right: 10px;
         color: #cb7f00;
         width: 20px;
         text-align: center;
@@ -274,7 +277,7 @@ ob_start();
     
     .submit-btn {
         width: 100%;
-        padding: 15px;
+        padding: 18px;
         background: linear-gradient(45deg, #cb7f00, #e89611);
         color: white;
         border: none;
@@ -283,7 +286,8 @@ ob_start();
         font-weight: bold;
         cursor: pointer;
         transition: all 0.3s ease;
-        margin-top: 20px;
+        margin-top: 30px;
+        margin-bottom: 20px;
     }
     
     .submit-btn:hover {
@@ -298,15 +302,24 @@ ob_start();
     
     @media (max-width: 768px) {
         .report-container {
-            padding: 10px;
+            margin: 40px auto;
+            padding: 20px 15px;
+            min-height: calc(100vh - 80px);
         }
         
         .report-form {
-            padding: 20px;
+            padding: 25px;
+            margin-top: 10px;
+            margin-bottom: 20px;
         }
         
         .form-header h1 {
             font-size: 1.5rem;
+        }
+        
+        .form-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
         }
     }
 </style>

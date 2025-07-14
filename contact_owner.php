@@ -5,7 +5,7 @@ require_once 'dbh.inc.php';
 
 $user_name = getUserName();
 $user_id = getUserId();
-$content_header = "Contact Owner";
+$content_header = "Contact Administrator";
 
 // Get post ID from URL
 $post_id = $_GET['post_id'] ?? '';
@@ -248,7 +248,7 @@ ob_start();
 
     <!-- Contact Form -->
     <div class="contact-form">
-        <h2>Request Contact Information</h2>
+        <h2>Contact Administrator</h2>
         <p>Please describe how this item belongs to you. This information will be reviewed by an administrator.</p>
         
         <form method="post">

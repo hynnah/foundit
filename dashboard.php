@@ -193,6 +193,36 @@ ob_start();
             object-fit: cover;
             flex-shrink: 0;
             border-right: 2px solid rgba(203, 127, 0, 0.2);
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .post-image:hover {
+            border-color: #cb7f00;
+            box-shadow: 0 4px 16px rgba(203, 127, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .found-item-placeholder {
+            width: 220px;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .found-item-placeholder:hover {
+            border-color: #cb7f00;
+            box-shadow: 0 4px 16px rgba(203, 127, 0, 0.2);
+            transform: translateY(-2px);
         }
         
         .post-details {
@@ -375,6 +405,19 @@ ob_start();
                 height: 200px;
                 border-right: none;
                 border-bottom: 2px solid rgba(203, 127, 0, 0.2);
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                margin-bottom: 15px;
+            }
+            
+            .found-item-placeholder {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 2px solid rgba(203, 127, 0, 0.2);
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                margin-bottom: 15px;
             }
             
             .post-header {
@@ -522,7 +565,7 @@ ob_start();
                     </div>
                     
                     <div class="post-body">
-                        <?php if ($report['image_path']): ?>
+                        <?php if ($report['image_path'] && $report['report_type'] === 'Lost'): ?>
                             <?php
                             // Handle different image path formats
                             $imagePath = $report['image_path'];
@@ -551,6 +594,11 @@ ob_start();
                                  class="post-image"
                                  onerror="this.src='resources/search.png';"
                                  title="Image path: <?php echo htmlspecialchars($report['image_path']); ?>">
+                        <?php elseif ($report['report_type'] === 'Found'): ?>
+                            <div class="post-image found-item-placeholder">
+                                <i class="fas fa-question-circle" style="font-size: 4rem; color: #666;"></i>
+                                <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666; text-align: center;">Contact Administrator<br>for Image Details</p>
+                            </div>
                         <?php else: ?>
                             <img src="resources/search.png" 
                                  alt="Default item image" 

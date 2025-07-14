@@ -13,11 +13,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $error_message = "Invalid CSRF token. Please refresh the page and try again.";
     } else {
-        $userId = $_POST['user_id'] ?? '';
         $action = $_POST['action'] ?? '';
         
-        if ($userId && in_array($action, ['make_admin', 'remove_admin'])) {
-            try {
+        // Handle create user
+        if ($action === 'create_user') {
+            $name = trim($_POST['name'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $phone = trim($_POST['phone'] ?? '');
+            $role = trim($_POST['role'] ?? '');
+            $password = trim($_POST['password'] ?? '');
+            $confirm_password = trim($_POST['confirm_password'] ?? '');
+            $user_type = trim($_POST['user_type'] ?? 'User');
+            
+            // Validation
+            if (empty($name) || empty($email) || empty($password) || empty($confirm_password) || empty($role)) {
+                $error_message = "Please fill in all required fields.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error_message = "Invalid email format.";
+            } elseif ($password !== $confirm_password) {
+                $error_message = "Passwords do not match.";
+            } elseif (strlen($password) < 6) {
+                $error_message = "Password must be at least 6 characters long.";
+            } else {
+                // Check if email already exists
+                $check_email_sql = "SELECT PersonID FROM Person WHERE email = ?";
+                $check_email_stmt = mysqli_prepare($connection, $check_email_sql);
+                mysqli_stmt_bind_param($check_email_stmt, "s", $email);
+                mysqli_stmt_execute($check_email_stmt);
+                $email_result = mysqli_stmt_get_result($check_email_stmt);
+                
+                if (mysqli_num_rows($email_result) > 0) {
+                    $error_message = "Email already exists.";
+                } else {
+                    // Begin transaction
+                    mysqli_begin_transaction($connection);
+                    
+                    try {
+                        // Hash the password
+                        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                        
+                        // Insert into Person table
+                        $insert_person_sql = "INSERT INTO Person (name, email, phone_number, password, person_type) VALUES (?, ?, ?, ?, ?)";
+                        $insert_person_stmt = mysqli_prepare($connection, $insert_person_sql);
+                        mysqli_stmt_bind_param($insert_person_stmt, "sssss", $name, $email, $phone, $password_hash, $user_type);
+                        mysqli_stmt_execute($insert_person_stmt);
+                        
+                        $person_id = mysqli_insert_id($connection);
+                        
+                        // Insert into User table with role
+                        $insert_user_sql = "INSERT INTO User (UserID, role) VALUES (?, ?)";
+                        $insert_user_stmt = mysqli_prepare($connection, $insert_user_sql);
+                        mysqli_stmt_bind_param($insert_user_stmt, "is", $person_id, $role);
+                        mysqli_stmt_execute($insert_user_stmt);
+                        
+                        // If user type is Administrator, add to Administrator table
+                        if ($user_type === 'Administrator') {
+                            $insert_admin_sql = "INSERT INTO Administrator (AdminID) VALUES (?)";
+                            $insert_admin_stmt = mysqli_prepare($connection, $insert_admin_sql);
+                            mysqli_stmt_bind_param($insert_admin_stmt, "i", $person_id);
+                            mysqli_stmt_execute($insert_admin_stmt);
+                        }
+                        
+                        // Commit transaction
+                        mysqli_commit($connection);
+                        
+                        $success_message = "User created successfully.";
+                        
+                    } catch (Exception $e) {
+                        // Rollback transaction
+                        mysqli_rollback($connection);
+                        $error_message = "Error creating user: " . $e->getMessage();
+                    }
+                }
+            }
+        } else {
+            // Handle other actions
+            $userId = $_POST['user_id'] ?? '';
+            
+            if ($userId && in_array($action, ['make_admin', 'remove_admin', 'delete_user', 'edit_user'])) {
+                try {
                 switch ($action) {
                     case 'make_admin':
                         // Check if user already exists in Administrator table
@@ -47,6 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         break;
                         
                     case 'remove_admin':
+                        // Prevent removal of system admin (ID=1)
+                        if ($userId == 1) {
+                            $error_message = "Cannot remove system administrator (ID=1).";
+                            break;
+                        }
+                        
                         // Check if this is not the last admin
                         $count_sql = "SELECT COUNT(*) as admin_count FROM Administrator";
                         $count_result = mysqli_query($connection, $count_sql);
@@ -70,19 +150,196 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             $error_message = "Cannot remove the last administrator.";
                         }
                         break;
+                        
+                    case 'delete_user':
+                        // Prevent deletion of system admin (ID=1)
+                        if ($userId == 1) {
+                            $error_message = "Cannot delete system administrator (ID=1).";
+                            break;
+                        }
+                        
+                        // Prevent deletion of current user
+                        if ($userId == getUserId()) {
+                            $error_message = "Cannot delete your own account.";
+                            break;
+                        }
+                        
+                        // Check if user is admin and ensure not the last admin
+                        $check_admin_sql = "SELECT person_type FROM Person WHERE PersonID = ?";
+                        $check_admin_stmt = mysqli_prepare($connection, $check_admin_sql);
+                        mysqli_stmt_bind_param($check_admin_stmt, "i", $userId);
+                        mysqli_stmt_execute($check_admin_stmt);
+                        $admin_check_result = mysqli_stmt_get_result($check_admin_stmt);
+                        $user_info = mysqli_fetch_assoc($admin_check_result);
+                        
+                        if ($user_info['person_type'] === 'Administrator') {
+                            $count_sql = "SELECT COUNT(*) as admin_count FROM Administrator";
+                            $count_result = mysqli_query($connection, $count_sql);
+                            $admin_count = mysqli_fetch_assoc($count_result)['admin_count'];
+                            
+                            if ($admin_count <= 1) {
+                                $error_message = "Cannot delete the last administrator.";
+                                break;
+                            }
+                        }
+                        
+                        // Begin transaction
+                        mysqli_begin_transaction($connection);
+                        
+                        try {
+                            // Remove from Administrator table if admin
+                            if ($user_info['person_type'] === 'Administrator') {
+                                $delete_admin_sql = "DELETE FROM Administrator WHERE AdminID = ?";
+                                $delete_admin_stmt = mysqli_prepare($connection, $delete_admin_sql);
+                                mysqli_stmt_bind_param($delete_admin_stmt, "i", $userId);
+                                mysqli_stmt_execute($delete_admin_stmt);
+                            }
+                            
+                            // Delete from User table
+                            $delete_user_sql = "DELETE FROM User WHERE UserID = ?";
+                            $delete_user_stmt = mysqli_prepare($connection, $delete_user_sql);
+                            mysqli_stmt_bind_param($delete_user_stmt, "i", $userId);
+                            mysqli_stmt_execute($delete_user_stmt);
+                            
+                            // Delete from Person table
+                            $delete_person_sql = "DELETE FROM Person WHERE PersonID = ?";
+                            $delete_person_stmt = mysqli_prepare($connection, $delete_person_sql);
+                            mysqli_stmt_bind_param($delete_person_stmt, "i", $userId);
+                            mysqli_stmt_execute($delete_person_stmt);
+                            
+                            // Commit transaction
+                            mysqli_commit($connection);
+                            
+                            $success_message = "User deleted successfully.";
+                            
+                        } catch (Exception $e) {
+                            // Rollback transaction
+                            mysqli_rollback($connection);
+                            $error_message = "Error deleting user: " . $e->getMessage();
+                        }
+                        break;
+                        
+                    case 'edit_user':
+                        $edit_name = trim($_POST['edit_name'] ?? '');
+                        $edit_email = trim($_POST['edit_email'] ?? '');
+                        $edit_phone = trim($_POST['edit_phone'] ?? '');
+                        $edit_password = trim($_POST['edit_password'] ?? '');
+                        $edit_user_type = trim($_POST['edit_user_type'] ?? '');
+                        $edit_role = trim($_POST['edit_role'] ?? '');
+                        
+                        // Validation
+                        if (empty($edit_name) || empty($edit_email)) {
+                            $error_message = "Name and email are required.";
+                            break;
+                        }
+                        
+                        if (!filter_var($edit_email, FILTER_VALIDATE_EMAIL)) {
+                            $error_message = "Invalid email format.";
+                            break;
+                        }
+                        
+                        // Check if email already exists for another user
+                        $check_email_sql = "SELECT PersonID FROM Person WHERE email = ? AND PersonID != ?";
+                        $check_email_stmt = mysqli_prepare($connection, $check_email_sql);
+                        mysqli_stmt_bind_param($check_email_stmt, "si", $edit_email, $userId);
+                        mysqli_stmt_execute($check_email_stmt);
+                        $email_result = mysqli_stmt_get_result($check_email_stmt);
+                        
+                        if (mysqli_num_rows($email_result) > 0) {
+                            $error_message = "Email already exists for another user.";
+                            break;
+                        }
+                        
+                        // Begin transaction
+                        mysqli_begin_transaction($connection);
+                        
+                        try {
+                            // Get current user type
+                            $current_type_sql = "SELECT person_type FROM Person WHERE PersonID = ?";
+                            $current_type_stmt = mysqli_prepare($connection, $current_type_sql);
+                            mysqli_stmt_bind_param($current_type_stmt, "i", $userId);
+                            mysqli_stmt_execute($current_type_stmt);
+                            $current_type_result = mysqli_stmt_get_result($current_type_stmt);
+                            $current_user = mysqli_fetch_assoc($current_type_result);
+                            $current_user_type = $current_user['person_type'];
+                            
+                            // Update Person table
+                            if (!empty($edit_password)) {
+                                $password_hash = password_hash($edit_password, PASSWORD_DEFAULT);
+                                $update_sql = "UPDATE Person SET name = ?, email = ?, phone_number = ?, password = ?, person_type = ? WHERE PersonID = ?";
+                                $update_stmt = mysqli_prepare($connection, $update_sql);
+                                mysqli_stmt_bind_param($update_stmt, "sssssi", $edit_name, $edit_email, $edit_phone, $password_hash, $edit_user_type, $userId);
+                            } else {
+                                $update_sql = "UPDATE Person SET name = ?, email = ?, phone_number = ?, person_type = ? WHERE PersonID = ?";
+                                $update_stmt = mysqli_prepare($connection, $update_sql);
+                                mysqli_stmt_bind_param($update_stmt, "ssssi", $edit_name, $edit_email, $edit_phone, $edit_user_type, $userId);
+                            }
+                            mysqli_stmt_execute($update_stmt);
+                            
+                            // Update User table role if edit_role is provided
+                            if (!empty($edit_role)) {
+                                $update_user_sql = "UPDATE User SET role = ? WHERE UserID = ?";
+                                $update_user_stmt = mysqli_prepare($connection, $update_user_sql);
+                                mysqli_stmt_bind_param($update_user_stmt, "si", $edit_role, $userId);
+                                mysqli_stmt_execute($update_user_stmt);
+                            }
+                            
+                            // Handle admin status changes
+                            if ($current_user_type === 'Administrator' && $edit_user_type === 'User') {
+                                // Remove from Administrator table
+                                $delete_admin_sql = "DELETE FROM Administrator WHERE AdminID = ?";
+                                $delete_admin_stmt = mysqli_prepare($connection, $delete_admin_sql);
+                                mysqli_stmt_bind_param($delete_admin_stmt, "i", $userId);
+                                mysqli_stmt_execute($delete_admin_stmt);
+                            } elseif ($current_user_type === 'User' && $edit_user_type === 'Administrator') {
+                                // Add to Administrator table
+                                $insert_admin_sql = "INSERT INTO Administrator (AdminID) VALUES (?)";
+                                $insert_admin_stmt = mysqli_prepare($connection, $insert_admin_sql);
+                                mysqli_stmt_bind_param($insert_admin_stmt, "i", $userId);
+                                mysqli_stmt_execute($insert_admin_stmt);
+                            }
+                            
+                            // Commit transaction
+                            mysqli_commit($connection);
+                            
+                            $success_message = "User updated successfully.";
+                            
+                        } catch (Exception $e) {
+                            // Rollback transaction
+                            mysqli_rollback($connection);
+                            $error_message = "Error updating user: " . $e->getMessage();
+                        }
+                        break;
                 }
                 
                 // Log the action
                 logActivity($userId, 'User Management', "$action performed by admin");
                 
-            } catch (Exception $e) {
-                $error_message = "Error performing action: " . $e->getMessage();
+                } catch (Exception $e) {
+                    $error_message = "Error performing action: " . $e->getMessage();
+                }
+            } else {
+                $error_message = "Invalid action or user ID.";
             }
-        } else {
-            $error_message = "Invalid action or user ID.";
         }
     }
 }
+
+// Fix for existing users without User table entries
+// This ensures all Person records have corresponding User entries
+$fix_missing_users_sql = "
+    INSERT INTO User (UserID, role)
+    SELECT p.PersonID, 
+           CASE 
+               WHEN p.email LIKE '%@usc.edu.ph' THEN 'Student'
+               WHEN p.email LIKE '%admin%' THEN 'Staff'
+               ELSE 'Student'
+           END as role
+    FROM Person p
+    LEFT JOIN User u ON p.PersonID = u.UserID
+    WHERE u.UserID IS NULL
+";
+mysqli_query($connection, $fix_missing_users_sql);
 
 // Search and filter parameters
 $search = $_GET['search'] ?? '';
@@ -169,6 +426,7 @@ $stats['inactive_users'] = 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoundIt - Manage Users</title>
     <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <style>
         body {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
@@ -231,6 +489,12 @@ $stats['inactive_users'] = 0;
 
         <!-- Search and Filters -->
         <div class="search-filters">
+            <div class="filter-header">
+                <h3>User Management</h3>
+                <button type="button" class="btn primary" onclick="showCreateUserModal()">
+                    <i class="fas fa-plus"></i> Create New User
+                </button>
+            </div>
             <form method="GET" class="filters-form" id="filterForm">
                 <div class="filter-group">
                     <label for="search">Search:</label>
@@ -305,15 +569,32 @@ $stats['inactive_users'] = 0;
                                                 <input type="hidden" name="user_id" value="<?php echo $user['UserID']; ?>">
                                                 
                                                 <?php if ($user['person_type'] === 'Administrator'): ?>
-                                                    <button type="submit" name="action" value="remove_admin" class="btn-sm secondary" onclick="return confirm('Are you sure you want to remove admin privileges?')">
-                                                        Remove Admin
-                                                    </button>
+                                                    <?php if ($user['UserID'] == 1): ?>
+                                                        <span class="text-muted">System Admin</span>
+                                                    <?php else: ?>
+                                                        <button type="submit" name="action" value="remove_admin" class="btn-sm secondary" onclick="return confirm('Are you sure you want to remove admin privileges?')">
+                                                            Remove Admin
+                                                        </button>
+                                                    <?php endif; ?>
                                                 <?php else: ?>
                                                     <button type="submit" name="action" value="make_admin" class="btn-sm primary" onclick="return confirm('Are you sure you want to make this user an admin?')">
                                                         Make Admin
                                                     </button>
                                                 <?php endif; ?>
                                             </form>
+                                            <!-- Edit User Button -->
+                                            <button type="button" class="btn-sm secondary" onclick="openEditModal(<?php echo $user['UserID']; ?>, '<?php echo htmlspecialchars($user['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['phone_number'], ENT_QUOTES); ?>', '<?php echo $user['person_type']; ?>', '<?php echo htmlspecialchars($user['role'] ?? '', ENT_QUOTES); ?>')">
+                                                Edit
+                                            </button>
+                                            <?php if ($user['UserID'] != 1 && $user['UserID'] != getUserId()): ?>
+                                                <form method="POST" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                                    <input type="hidden" name="user_id" value="<?php echo $user['UserID']; ?>">
+                                                    <button type="submit" name="action" value="delete_user" class="btn-sm danger" onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                             <span class="text-muted">Current User</span>
                                         <?php endif; ?>
@@ -350,6 +631,162 @@ $stats['inactive_users'] = 0;
                 <?php endif; ?>
             </div>
         <?php endif; ?>
+    </div>
+    
+    <!-- Create User Modal -->
+    <div id="createUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New User</h3>
+                <span class="close" onclick="closeCreateUserModal()">&times;</span>
+            </div>
+            <form method="POST" class="modal-form" id="createUserForm">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                <input type="hidden" name="action" value="create_user">
+                
+                <div class="form-group">
+                    <label for="create_name">Full Name *</label>
+                    <input type="text" id="create_name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="create_email">Email Address *</label>
+                    <input type="email" id="create_email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="create_phone">Phone Number</label>
+                    <input type="tel" id="create_phone" name="phone" pattern="[0-9]+" title="Please enter numbers only">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="create_role">Role *</label>
+                        <select id="create_role" name="role" required>
+                            <option value="">Select Role</option>
+                            <option value="Student">Student</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Visitor">Visitor</option>
+                            <option value="Cashier">Cashier</option>
+                            <option value="Guard">Guard</option>
+                            <option value="Janitor">Janitor</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="create_user_type">User Type *</label>
+                        <select id="create_user_type" name="user_type" required>
+                            <option value="User">Regular User</option>
+                            <option value="Administrator">Administrator</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="create_password">Password *</label>
+                        <div class="password-input-container">
+                            <input type="password" id="create_password" name="password" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="toggleModalPassword('create_password')">
+                                <i class="fas fa-eye" id="create_password-toggle-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="create_confirm_password">Confirm Password *</label>
+                        <div class="password-input-container">
+                            <input type="password" id="create_confirm_password" name="confirm_password" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="toggleModalPassword('create_confirm_password')">
+                                <i class="fas fa-eye" id="create_confirm_password-toggle-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" onclick="closeCreateUserModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit User</h3>
+                <span class="close" onclick="closeEditUserModal()">&times;</span>
+            </div>
+            <form method="POST" class="modal-form" id="editUserForm">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                <input type="hidden" name="action" value="edit_user">
+                <input type="hidden" name="user_id" id="edit_user_id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_name">Full Name *</label>
+                        <input type="text" name="edit_name" id="edit_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_email">Email *</label>
+                        <input type="email" name="edit_email" id="edit_email" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_phone">Phone Number</label>
+                        <input type="text" name="edit_phone" id="edit_phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_role">System Role</label>
+                        <select name="edit_role" id="edit_role">
+                            <option value="">Select Role</option>
+                            <option value="Student">Student</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Visitor">Visitor</option>
+                            <option value="Cashier">Cashier</option>
+                            <option value="Guard">Guard</option>
+                            <option value="Janitor">Janitor</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_user_type">User Type</label>
+                        <select name="edit_user_type" id="edit_user_type" required>
+                            <option value="User">User</option>
+                            <option value="Administrator">Administrator</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <!-- Empty space for alignment -->
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_password">New Password (leave blank to keep current)</label>
+                        <div class="password-container">
+                            <input type="password" name="edit_password" id="edit_password" placeholder="Leave blank to keep current password">
+                            <button type="button" class="toggle-password" onclick="toggleModalPassword('edit_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" onclick="closeEditUserModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Update User</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <style>
@@ -405,6 +842,21 @@ $stats['inactive_users'] = 0;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             margin-bottom: 30px;
+        }
+        
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        
+        .filter-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.4em;
         }
 
         .filters-form {
@@ -508,6 +960,38 @@ $stats['inactive_users'] = 0;
             gap: 5px;
             flex-wrap: wrap;
         }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn.primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn.primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn.secondary:hover {
+            background: #5a6268;
+        }
 
         .btn-sm {
             padding: 4px 8px;
@@ -523,6 +1007,13 @@ $stats['inactive_users'] = 0;
         .btn-sm.success { background: #28a745; color: white; }
         .btn-sm.warning { background: #ffc107; color: #212529; }
         .btn-sm.secondary { background: #6c757d; color: white; }
+        .btn-sm.danger { background: #dc3545; color: white; }
+        
+        .btn-sm.primary:hover { background: #0056b3; }
+        .btn-sm.success:hover { background: #218838; }
+        .btn-sm.warning:hover { background: #e0a800; }
+        .btn-sm.secondary:hover { background: #5a6268; }
+        .btn-sm.danger:hover { background: #c82333; }
 
         .pagination {
             display: flex;
@@ -575,8 +1066,160 @@ $stats['inactive_users'] = 0;
             color: #6c757d;
             font-style: italic;
         }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 3% auto;
+            padding: 40px;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 650px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .modal-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .modal-form label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .modal-form input,
+        .modal-form select {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .modal-form input:focus,
+        .modal-form select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .modal-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .modal-form .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .password-input-container input {
+            padding-right: 45px;
+            width: 100%;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 16px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toggle-password:hover {
+            color: #007bff;
+            background: rgba(0, 123, 255, 0.1);
+        }
+        
+        .toggle-password:focus {
+            outline: 2px solid #007bff;
+            outline-offset: 2px;
+        }
 
         @media (max-width: 768px) {
+            .modal-content {
+                width: 98%;
+                margin: 2% auto;
+                padding: 25px;
+            }
+            
+            .modal-form .form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
             .filters-form {
                 flex-direction: column;
                 align-items: stretch;
@@ -593,6 +1236,95 @@ $stats['inactive_users'] = 0;
     </style>
 
     <script>
+        // Modal functions
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'block';
+        }
+        
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+            document.getElementById('createUserForm').reset();
+        }
+        
+        // Edit User Modal functions
+        function openEditModal(userId, name, email, phone, userType, role) {
+            document.getElementById('edit_user_id').value = userId;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_phone').value = phone || '';
+            document.getElementById('edit_user_type').value = userType;
+            document.getElementById('edit_role').value = role || '';
+            document.getElementById('edit_password').value = '';
+            document.getElementById('editUserModal').style.display = 'block';
+        }
+        
+        function closeEditUserModal() {
+            document.getElementById('editUserModal').style.display = 'none';
+            document.getElementById('editUserForm').reset();
+        }
+        
+        function toggleModalPassword(fieldId) {
+            const passwordField = document.getElementById(fieldId);
+            const toggleIcon = document.getElementById(fieldId + '-toggle-icon');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+        
+        // Phone number validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneField = document.getElementById('create_phone');
+            const editPhoneField = document.getElementById('edit_phone');
+            
+            if (phoneField) {
+                phoneField.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            }
+            
+            if (editPhoneField) {
+                editPhoneField.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            }
+        });
+        
+        // Password confirmation validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const confirmPasswordField = document.getElementById('create_confirm_password');
+            if (confirmPasswordField) {
+                confirmPasswordField.addEventListener('input', function(e) {
+                    const password = document.getElementById('create_password').value;
+                    const confirmPassword = this.value;
+                    
+                    if (password !== confirmPassword) {
+                        this.setCustomValidity('Passwords do not match');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                });
+            }
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const createModal = document.getElementById('createUserModal');
+            const editModal = document.getElementById('editUserModal');
+            
+            if (event.target === createModal) {
+                closeCreateUserModal();
+            } else if (event.target === editModal) {
+                closeEditUserModal();
+            }
+        }
+        
         // Enhanced filter functionality
         document.addEventListener('DOMContentLoaded', function() {
             const filterForm = document.querySelector('#filterForm');

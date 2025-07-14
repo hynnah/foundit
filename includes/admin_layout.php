@@ -1,4 +1,11 @@
-<link rel="stylesheet" href="style.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoundIt Admin - <?php echo isset($content_header) ? htmlspecialchars($content_header) : 'Dashboard'; ?></title>
+    <link rel="stylesheet" href="../style.css">
+</head>
 <body>
     <div class='main-content'>
         <div class='side-bar'>
@@ -29,7 +36,7 @@
                 <img src="../resources/user.png" alt="Manage Users Icon">Manage Users
             </a>
             <a href="inbox.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'inbox.php') ? 'active' : ''; ?>">
-                <img src="../resources/env.png" alt="Inbox Icon">Inbox
+                <img src="../resources/env.png" alt="Inbox Icon">Manage Claims
             </a>
         </div>
         <div class="container" style="flex:1; display:flex; flex-direction:column; min-height:100vh;">
@@ -38,7 +45,7 @@
                     <img src="../resources/logo.png" alt="FoundIt Logo">
                 </div>
             </header>
-            <div class='content'>
+            <div class='admin-content'>
                 <div class='content-header'>
                     <?php echo isset($content_header) ? htmlspecialchars($content_header) : ''; ?>
                 </div>

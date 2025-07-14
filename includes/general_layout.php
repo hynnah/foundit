@@ -23,14 +23,14 @@
             <a href="dashboard.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
                 <img src="./resources/home.png" alt="Home Icon">Home
             </a>
-            <a href="found_items.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'found_items.php') ? 'active' : ''; ?>">
-                <img src="./resources/search.png" alt="Found Items Icon">Found Items
-            </a>
             <a href="report_lost_item.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'report_lost_item.php') ? 'active' : ''; ?>">
                 <img src="./resources/location-exclamation.png" alt="Report Lost Items Icon">Report
             </a>
+            <a href="reports.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'reports.php') ? 'active' : ''; ?>">
+                <img src="./resources/megaphone-magnifying-glass.png" alt="My Reports Icon">Reports History
+            </a>
             <a href="inbox.php" class="<?php echo (basename($_SERVER['PHP_SELF']) == 'inbox.php') ? 'active' : ''; ?>">
-                <img src="./resources/env.png" alt="Inbox Icon">Inbox
+                <img src="./resources/env.png" alt="Contact Requests Icon">Contact Requests
             </a>
         </div>
         <div class="container" style="flex:1; display:flex; flex-direction:column; min-height:100vh;">

@@ -322,9 +322,25 @@ body {
 
 .content {
     flex: 1;
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%);
+    background-size: auto;
+    background-position: center;
+    background-repeat: repeat;
     overflow-y: auto;
     position: relative;
+    min-height: 100vh;
+}
+
+/* Admin pages need relative path adjustment */
+.admin-content {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%), url('../resources/founditbg.png');
+    background-size: auto;
+    background-position: center;
+    background-repeat: repeat;
+    overflow-y: auto;
+    position: relative;
+    min-height: 100vh;
 }
 
 .content-header {

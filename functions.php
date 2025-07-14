@@ -23,10 +23,10 @@ function validateEmail($email) {
 }
 
 /**
- * Validate phone number (basic)
+ * Validate phone number (digits only)
  */
 function validatePhone($phone) {
-    return preg_match('/^[0-9+\-\s()]+$/', $phone);
+    return preg_match('/^[0-9]+$/', $phone);
 }
 
 /**

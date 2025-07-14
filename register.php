@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoundIt - Sign Up</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <style>
+        .password-input-container {
+            position: relative;
+        }
+        
+        .password-input-container input {
+            padding-right: 50px;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 18px;
+            padding: 5px;
+        }
+        
+        .toggle-password:hover {
+            color: #cb7f00;
+        }
+    </style>
 </head>
 <body>
     <div class="signup-content">
@@ -50,7 +77,7 @@
                 
                 <div class="form-group">
                     <label for="phone">Phone Number</label>
-                    <input type="text" id="phone" name="phone" placeholder="Enter your phone number"
+                    <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" pattern="[0-9]+" title="Please enter numbers only"
                            value="<?php echo isset($_GET["phone"]) ? htmlspecialchars($_GET["phone"]) : ''; ?>">
                 </div>
                 
@@ -66,12 +93,22 @@
                 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    <div class="password-input-container">
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                            <i class="fas fa-eye" id="password-toggle-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="password-repeat">Confirm Password</label>
-                    <input type="password" id="password-repeat" name="password-repeat" required placeholder="Confirm your password">
+                    <div class="password-input-container">
+                        <input type="password" id="password-repeat" name="password-repeat" required placeholder="Confirm your password">
+                        <button type="button" class="toggle-password" onclick="togglePassword('password-repeat')">
+                            <i class="fas fa-eye" id="password-repeat-toggle-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <button type="submit" name="signup-submit" class="signup-button">Sign Up</button>
@@ -82,6 +119,29 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function togglePassword(fieldId) {
+            const passwordField = document.getElementById(fieldId);
+            const toggleIcon = document.getElementById(fieldId + '-toggle-icon');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+        
+        // Phone number validation
+        document.getElementById('phone').addEventListener('input', function(e) {
+            // Remove any non-digit characters
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    </script>
 </body>
 </html>
 
