@@ -22,6 +22,7 @@ $sql = "SELECT r.*,
                fp.PostID,
                fp.post_date,
                fp.post_status,
+               r.ApprovalStatusID,
                p.name as submitter_name,
                p.email as submitter_email
         FROM Report r
@@ -31,7 +32,7 @@ $sql = "SELECT r.*,
         LEFT JOIN FeedPost fp ON r.ReportID = fp.ReportID
         LEFT JOIN User u ON r.UserID_submitter = u.UserID
         LEFT JOIN Person p ON u.UserID = p.PersonID
-        WHERE fp.PostID = ? AND r.ApprovalStatusID = 2 AND fp.post_status = 'Active'";
+        WHERE fp.PostID = ?";
 
 $stmt = mysqli_prepare($connection, $sql);
 mysqli_stmt_bind_param($stmt, "i", $post_id);
@@ -64,7 +65,7 @@ ob_start();
     }
     
     .item-header {
-        background: linear-gradient(135deg, #cb7f00, #e89611);
+        background: linear-gradient(135deg, #cb7f00, #e89611); 
         color: white;
         padding: 30px;
         text-align: center;
@@ -211,12 +212,12 @@ ob_start();
     }
     
     .btn-primary {
-        background: linear-gradient(135deg, #007bff, #0056b3);
+        background: #e89611;
         color: white;
     }
     
     .btn-primary:hover {
-        background: linear-gradient(135deg, #0056b3, #004494);
+        background: #cb7f00;
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
@@ -233,12 +234,12 @@ ob_start();
     }
     
     .btn-success {
-        background: linear-gradient(135deg, #28a745, #218838);
+        background: #e89611;
         color: white;
     }
     
     .btn-success:hover {
-        background: linear-gradient(135deg, #218838, #1e7e34);
+        background: #cb7f00;
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }

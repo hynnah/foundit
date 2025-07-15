@@ -259,7 +259,7 @@ ob_start();
         }
         
         .user-role-tag.admin {
-            background-color: #dc3545;
+            background-color: #ff6b6b;
             color: white;
         }
         

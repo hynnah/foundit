@@ -92,7 +92,7 @@ ob_start();
     
     .search-btn {
         padding: 12px 25px;
-        background: linear-gradient(135deg, #ffb347, #cb7f00);
+        background: #e89611;
         color: white;
         border: none;
         border-radius: 8px;
@@ -103,7 +103,7 @@ ob_start();
     }
     
     .search-btn:hover {
-        background: linear-gradient(135deg, #cb7f00, #a66600);
+        background: #cb7f00;
     }
     
     .items-table {
@@ -267,7 +267,7 @@ ob_start();
                                 </span>
                             </td>
                             <td>
-                                <a href="view_item_details.php?post_id=<?php echo $row['PostID']; ?>" class="contact-btn" style="background: #6c757d;">
+                                <a href="view_item_details.php?post_id=<?php echo $row['PostID']; ?>" class="contact-btn" style="background: #5A6268;">
                                     <i class="fas fa-eye"></i> View Details
                                 </a>
                             </td>

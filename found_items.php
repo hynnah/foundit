@@ -161,7 +161,7 @@ ob_start();
     
     .contact-btn {
         padding: 8px 15px;
-        background: #007bff;
+        background: #e89611;
         color: white;
         border: none;
         border-radius: 5px;
@@ -172,7 +172,7 @@ ob_start();
     }
     
     .contact-btn:hover {
-        background: #0056b3;
+        background: #cb7f00;
         text-decoration: none;
         color: white;
     }
