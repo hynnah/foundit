@@ -186,7 +186,7 @@ ob_start();
     
     .alert-success {
         background: #d4edda;
-        color: #155724;
+        color: #51cf66;
         border: 1px solid #c3e6cb;
     }
     

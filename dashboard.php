@@ -264,12 +264,12 @@ ob_start();
         }
         
         .user-role-tag.student {
-            background-color: #007bff;
+            background-color: #5A6268;
             color: white;
         }
         
         .user-role-tag.user {
-            background-color: #007bff;
+            background-color: #5A6268;
             color: white;
         }
         
@@ -347,7 +347,7 @@ ob_start();
         }
         
         .view-details-btn {
-            background: #007bff;
+            background: #6c757d;
             color: white;
             padding: 8px 16px;
             border-radius: 6px;
@@ -361,7 +361,7 @@ ob_start();
         }
         
         .view-details-btn:hover {
-            background: #0056b3;
+            background: #5A6268;
             transform: translateY(-1px);
             text-decoration: none;
             color: white;
