@@ -211,7 +211,7 @@ ob_start();
             background: #f8f9fc;
             padding: 15px;
             border-radius: 8px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #cb7f00; /* changed from #007bff */
             margin-top: 10px;
             color: #333;
         }
@@ -245,7 +245,7 @@ ob_start();
         }
 
         .btn.primary {
-            background: #007bff;
+            background: #cb7f00; /* changed from #007bff */
             color: white;
         }
 

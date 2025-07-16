@@ -379,7 +379,7 @@ ob_start();
                 <!-- Action buttons moved here for better positioning -->
                 <div class="action-buttons">
                     <a href="dashboard.php" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        <i class="fas fa-arrow-left"></i> Go to Dashboard
                     </a>
                     
                     <?php if ($item['report_type'] === 'Found'): ?>
@@ -389,8 +389,8 @@ ob_start();
                     <?php endif; ?>
                     
                     <?php if ($item['report_type'] === 'Lost'): ?>
-                        <a href="found_items.php" class="btn btn-success">
-                            <i class="fas fa-search"></i> Browse Found Items
+                        <a href="reports.php" class="btn btn-success">
+                            <i class="fas fa-history"></i> Back to Reports History
                         </a>
                     <?php endif; ?>
                 </div>

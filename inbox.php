@@ -79,7 +79,7 @@ ob_start();
             align-items: center;
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #cb7f00;
         }
         
         .inbox-stats {
@@ -98,7 +98,7 @@ ob_start();
         .stat-number {
             font-size: 24px;
             font-weight: bold;
-            color: #007bff;
+            color: #cb7f00;
         }
         
         .stat-label {
@@ -113,7 +113,7 @@ ob_start();
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #cb7f00;
         }
         
         .request-header {
@@ -170,7 +170,7 @@ ob_start();
             display: inline-block;
         }
         
-        .btn-primary { background: #007bff; color: white; }
+        .btn-primary { background: #cb7f00; color: white; }
         .btn-success { background: #28a745; color: white; }
         .btn-danger { background: #dc3545; color: white; }
         .btn-secondary { background: #6c757d; color: white; }
@@ -329,7 +329,8 @@ ob_start();
                     <?php endif; ?>
                     
                     <?php if (!$isAdmin): ?>
-                        <a href="view_contact_request.php?id=<?php echo $row['ContactID']; ?>" class="btn btn-secondary">View Details</a>
+                        <a href="view_contact_request.php?id=<?php echo $row['ContactID']; ?>" class="btn btn-secondary"></i> View Details
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>

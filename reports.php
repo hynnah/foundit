@@ -151,9 +151,21 @@ ob_start();
         border-radius: 15px;
         font-size: 0.8rem;
         font-weight: bold;
-        background: #51cf66;
         color: white;
         text-transform: uppercase;
+    }
+
+    .status-active {
+        background-color: #f0ad4e; 
+    }
+
+    .status-pending {
+        background-color: #f0e6b8; 
+        color: #8a6d1b; 
+    }
+
+    .status-other {
+        background-color: #6c757d; 
     }
     
     .contact-btn {
@@ -256,14 +268,23 @@ ob_start();
                             <td><?php echo htmlspecialchars($row['location_last_seen']); ?></td>
                             <td><?php echo formatDate($row['incident_date'], 'M d, Y'); ?></td>
                             <td>
-                                <span class="status-badge">
-                                    <?php 
-                                        if ($row['ApprovalStatusID'] != 2) {
-                                            echo 'Pending';
+                                <?php 
+                                    $status_text = '';
+                                    $status_class = '';
+                                    if ($row['ApprovalStatusID'] != 2) {
+                                        $status_text = 'Pending';
+                                        $status_class = 'status-pending';
+                                    } else {
+                                        $status_text = htmlspecialchars($row['post_status'] ?? 'Unknown');
+                                        if (strtolower($status_text) === 'active') {
+                                            $status_class = 'status-active';
                                         } else {
-                                            echo htmlspecialchars($row['post_status'] ?? 'Unknown');
+                                            $status_class = 'status-other';
                                         }
-                                    ?>
+                                    }
+                                ?>
+                                <span class="status-badge <?php echo $status_class; ?>">
+                                    <?php echo $status_text; ?>
                                 </span>
                             </td>
                             <td>
