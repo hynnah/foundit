@@ -73,6 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $filter_status = $_GET['status'] ?? 'pending';
 $filter_type = $_GET['type'] ?? '';
 $search = $_GET['search'] ?? '';
+$date_from = $_GET['date_from'] ?? '';
+$date_to = $_GET['date_to'] ?? '';
 
 // Build query
 $where_conditions = [];
@@ -104,6 +106,18 @@ if ($search) {
     $params[] = $search_param;
     $params[] = $search_param;
     $param_types .= 'sss';
+}
+
+if ($date_from) {
+    $where_conditions[] = "DATE(r.submission_date) >= ?";
+    $params[] = $date_from;
+    $param_types .= 's';
+}
+
+if ($date_to) {
+    $where_conditions[] = "DATE(r.submission_date) <= ?";
+    $params[] = $date_to;
+    $param_types .= 's';
 }
 
 $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -255,6 +269,30 @@ $csrf_token = generateCSRFToken();
             border: none;
             border-radius: 4px;
             cursor: pointer;
+        }
+        
+        .quick-date-ranges {
+            margin-top: 8px;
+        }
+        
+        .quick-date-ranges button {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .quick-date-ranges button:hover {
+            background-color: #e9ecef !important;
+        }
+        
+        .filter-group {
+            position: relative;
+        }
+        
+        .date-range-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
         }
         
         .report-card {
@@ -484,9 +522,21 @@ $csrf_token = generateCSRFToken();
                     </select>
                 </div>
                 
+                <div class="filter-group">
+                    <label for="date_from">Date From:</label>
+                    <input type="date" id="date_from" name="date_from" 
+                           value="<?php echo htmlspecialchars($date_from); ?>">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_to">Date To:</label>
+                    <input type="date" id="date_to" name="date_to" 
+                           value="<?php echo htmlspecialchars($date_to); ?>">
+                </div>
+                
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="review_reports.php" class="btn btn-secondary">Clear</a>
+                    <a href="review_reports.php?status=<?php echo htmlspecialchars($filter_status); ?>" class="btn btn-secondary">Clear</a>
                 </div>
             </form>
         </div>
@@ -681,7 +731,95 @@ $csrf_token = generateCSRFToken();
                 console.log('Type select current value:', typeSelect.value);
                 console.log('Type select options:', Array.from(typeSelect.options).map(opt => opt.value));
             }
+            
+            // Date range helpers
+            const dateFromInput = document.getElementById('date_from');
+            const dateToInput = document.getElementById('date_to');
+            
+            if (dateFromInput && dateToInput) {
+                // Set max date to today
+                const today = new Date().toISOString().split('T')[0];
+                dateFromInput.max = today;
+                dateToInput.max = today;
+                
+                // Validate date range
+                dateFromInput.addEventListener('change', function() {
+                    if (this.value && dateToInput.value && this.value > dateToInput.value) {
+                        dateToInput.value = this.value;
+                    }
+                    if (this.value) {
+                        dateToInput.min = this.value;
+                    }
+                });
+                
+                dateToInput.addEventListener('change', function() {
+                    if (this.value && dateFromInput.value && this.value < dateFromInput.value) {
+                        dateFromInput.value = this.value;
+                    }
+                    if (this.value) {
+                        dateFromInput.max = this.value;
+                    }
+                });
+            }
+            
+            // Add quick date range buttons
+            addQuickDateRangeButtons();
         });
+        
+        // Quick date range function
+        function addQuickDateRangeButtons() {
+            const dateFromInput = document.getElementById('date_from');
+            const dateToInput = document.getElementById('date_to');
+            
+            if (!dateFromInput || !dateToInput) return;
+            
+            const quickRangeContainer = document.createElement('div');
+            quickRangeContainer.className = 'quick-date-ranges';
+            quickRangeContainer.style.cssText = 'display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap;';
+            
+            const ranges = [
+                { label: 'Today', days: 0 },
+                { label: 'Last 7 days', days: 7 },
+                { label: 'Last 30 days', days: 30 },
+                { label: 'Last 90 days', days: 90 }
+            ];
+            
+            ranges.forEach(range => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = range.label;
+                btn.className = 'btn btn-sm btn-outline-secondary';
+                btn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer;';
+                
+                btn.addEventListener('click', function() {
+                    const today = new Date();
+                    const fromDate = new Date(today);
+                    fromDate.setDate(today.getDate() - range.days);
+                    
+                    dateFromInput.value = fromDate.toISOString().split('T')[0];
+                    dateToInput.value = today.toISOString().split('T')[0];
+                });
+                
+                quickRangeContainer.appendChild(btn);
+            });
+            
+            // Add clear dates button
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.textContent = 'Clear';
+            clearBtn.className = 'btn btn-sm btn-outline-danger';
+            clearBtn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #dc3545; background: #f8f9fa; cursor: pointer; color: #dc3545;';
+            
+            clearBtn.addEventListener('click', function() {
+                dateFromInput.value = '';
+                dateToInput.value = '';
+            });
+            
+            quickRangeContainer.appendChild(clearBtn);
+            
+            // Insert after the date_to input
+            dateToInput.parentNode.appendChild(quickRangeContainer);
+        }
         
         // Auto-refresh for pending reports
         setTimeout(() => {

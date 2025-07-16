@@ -9,6 +9,36 @@ $user_name = getUserName();
 $content_header = "Contact Requests Management";
 $currentUserId = getUserId();
 
+// Get filter parameters
+$filter_status = $_GET['status'] ?? '';
+$date_from = $_GET['date_from'] ?? '';
+$date_to = $_GET['date_to'] ?? '';
+
+// Build WHERE conditions
+$where_conditions = ["r.archiveYN = 0"];
+$params = [];
+$param_types = '';
+
+if ($filter_status) {
+    $where_conditions[] = "cr.review_status = ?";
+    $params[] = $filter_status;
+    $param_types .= 's';
+}
+
+if ($date_from) {
+    $where_conditions[] = "DATE(cr.submission_date) >= ?";
+    $params[] = $date_from;
+    $param_types .= 's';
+}
+
+if ($date_to) {
+    $where_conditions[] = "DATE(cr.submission_date) <= ?";
+    $params[] = $date_to;
+    $param_types .= 's';
+}
+
+$where_clause = implode(' AND ', $where_conditions);
+
 // Admin: Show all contact requests that need review
 $sql = "SELECT 
             cr.ContactID, 
@@ -41,7 +71,7 @@ $sql = "SELECT
         JOIN FeedPost fp ON cr.PostID = fp.PostID
         JOIN Report r ON fp.ReportID = r.ReportID
         LEFT JOIN Claim c ON cr.ContactID = c.ContactID
-        WHERE r.archiveYN = 0
+        WHERE $where_clause
         ORDER BY 
             CASE WHEN cr.review_status = 'Pending' THEN 1 
                  WHEN cr.review_status = 'Approved' THEN 2 
@@ -49,6 +79,9 @@ $sql = "SELECT
             cr.submission_date DESC";
 
 $stmt = mysqli_prepare($connection, $sql);
+if (!empty($params)) {
+    mysqli_stmt_bind_param($stmt, $param_types, ...$params);
+}
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 
@@ -259,13 +292,52 @@ $stats = mysqli_fetch_assoc($stats_result);
         .filter-row {
             display: flex;
             gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
             align-items: center;
         }
         
-        .filter-row select {
+        .filter-row select,
+        .filter-row input {
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            min-width: 120px;
+        }
+
+        .filter-row select:focus,
+        .filter-row input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .filter-row button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
         
         /* Rejection Dropdown Styles */
@@ -457,22 +529,43 @@ $stats = mysqli_fetch_assoc($stats_result);
         </div>
         
         <div class="filters">
-            <div class="filter-row">
-                <label>Filter by Status:</label>
-                <select id="statusFilter" onchange="filterRequests()">
-                    <option value="">All Statuses</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                </select>
+            <form method="get" class="filter-row" id="filterForm">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select name="status" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="Pending" <?php echo $filter_status === 'Pending' ? 'selected' : ''; ?>>Pending</option>
+                        <option value="Approved" <?php echo $filter_status === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                        <option value="Rejected" <?php echo $filter_status === 'Rejected' ? 'selected' : ''; ?>>Rejected</option>
+                    </select>
+                </div>
                 
-                <label>Sort by:</label>
-                <select id="sortFilter" onchange="sortRequests()">
-                    <option value="date_desc">Newest First</option>
-                    <option value="date_asc">Oldest First</option>
-                    <option value="status">Status</option>
-                </select>
-            </div>
+                <div class="filter-group">
+                    <label for="date_from">Date From:</label>
+                    <input type="date" id="date_from" name="date_from" 
+                           value="<?php echo htmlspecialchars($date_from); ?>">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_to">Date To:</label>
+                    <input type="date" id="date_to" name="date_to" 
+                           value="<?php echo htmlspecialchars($date_to); ?>">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Sort by:</label>
+                    <select id="sortFilter" onchange="sortRequests()">
+                        <option value="date_desc">Newest First</option>
+                        <option value="date_asc">Oldest First</option>
+                        <option value="status">Status</option>
+                    </select>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="inbox.php" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
         </div>
         
         <?php if (mysqli_num_rows($result) > 0): ?>
@@ -769,6 +862,38 @@ $stats = mysqli_fetch_assoc($stats_result);
         });
         document.addEventListener('keypress', function() {
             window.lastActivity = Date.now();
+        });
+        
+        // Date range functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateFromInput = document.getElementById('date_from');
+            const dateToInput = document.getElementById('date_to');
+            
+            if (dateFromInput && dateToInput) {
+                // Set max date to today
+                const today = new Date().toISOString().split('T')[0];
+                dateFromInput.max = today;
+                dateToInput.max = today;
+                
+                // Validate date range
+                dateFromInput.addEventListener('change', function() {
+                    if (this.value && dateToInput.value && this.value > dateToInput.value) {
+                        dateToInput.value = this.value;
+                    }
+                    if (this.value) {
+                        dateToInput.min = this.value;
+                    }
+                });
+                
+                dateToInput.addEventListener('change', function() {
+                    if (this.value && dateFromInput.value && this.value < dateFromInput.value) {
+                        dateFromInput.value = this.value;
+                    }
+                    if (this.value) {
+                        dateFromInput.max = this.value;
+                    }
+                });
+            }
         });
         
         // Handle rejection dropdown toggles
