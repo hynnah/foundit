@@ -278,6 +278,7 @@ $csrf_token = generateCSRFToken();
         .quick-date-ranges button {
             margin-right: 5px;
             margin-bottom: 5px;
+            color: #333 !important;
         }
         
         .quick-date-ranges button:hover {
@@ -789,7 +790,7 @@ $csrf_token = generateCSRFToken();
                 btn.type = 'button';
                 btn.textContent = range.label;
                 btn.className = 'btn btn-sm btn-outline-secondary';
-                btn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer;';
+                btn.style.cssText = 'padding: 4px 8px; font-size: 12px; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer; color: #333;';
                 
                 btn.addEventListener('click', function() {
                     const today = new Date();
