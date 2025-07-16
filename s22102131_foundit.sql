@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 12, 2025 at 09:08 PM
+-- Generation Time: Jul 16, 2025 at 02:46 PM
 -- Server version: 10.11.11-MariaDB-0+deb12u1
 -- PHP Version: 8.2.28
 
@@ -57,7 +57,10 @@ CREATE TABLE `ApprovalStatus` (
 INSERT INTO `ApprovalStatus` (`ApprovalStatusID`, `status_name`, `description`) VALUES
 (1, 'Pending', 'Awaiting admin review'),
 (2, 'Approved', 'Approved by admin for public posting'),
-(3, 'Rejected', 'Rejected by admin');
+(3, 'Rejected', 'Rejected by admin'),
+(4, 'Under Review', 'Currently being reviewed by admin'),
+(5, 'Needs Revision', 'Requires changes before approval'),
+(6, 'Escalated', 'Escalated for higher level review');
 
 -- --------------------------------------------------------
 
@@ -71,9 +74,9 @@ CREATE TABLE `Claim` (
   `UserID_claimant` int(11) NOT NULL,
   `AdminID_processor` int(11) NOT NULL,
   `claim_date` datetime NOT NULL DEFAULT current_timestamp(),
-  `claim_status` enum('Processing','Completed','Rejected') DEFAULT 'Processing',
+  `claim_status` enum('Processing','Under Investigation','Awaiting Verification','Completed','Rejected','Cancelled') DEFAULT 'Processing',
   `interrogation_notes` text DEFAULT NULL,
-  `passed_interrogation` tinyint(1) DEFAULT NULL,
+  `passed_interrogationYN` tinyint(1) DEFAULT NULL,
   `resolution_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -89,10 +92,14 @@ CREATE TABLE `ContactRequest` (
   `PostID` int(11) NOT NULL,
   `AdminID_reviewer` int(11) DEFAULT NULL,
   `ownership_description` text NOT NULL,
+  `item_appearance` text DEFAULT NULL,
+  `location_lost` varchar(255) DEFAULT NULL,
+  `date_lost` date DEFAULT NULL,
+  `evidence_file_path` varchar(255) DEFAULT NULL,
+  `evidence_file_name` varchar(255) DEFAULT NULL,
+  `unique_marks` text DEFAULT NULL,
   `submission_date` datetime NOT NULL DEFAULT current_timestamp(),
-  `detailed_description` text DEFAULT NULL,
-  `evidence_details` text DEFAULT NULL,
-  `review_status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `review_status` enum('Pending','Under Review','Approved','Rejected','Requires More Info') DEFAULT 'Pending',
   `review_date` datetime DEFAULT NULL,
   `review_notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -107,7 +114,7 @@ CREATE TABLE `FeedPost` (
   `PostID` int(11) NOT NULL,
   `ReportID` int(11) NOT NULL,
   `post_date` datetime NOT NULL DEFAULT current_timestamp(),
-  `post_status` enum('Active','Archived','Claimed') DEFAULT 'Active'
+  `post_status` enum('Active','Archived','Claimed','Expired','Hidden') DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -118,7 +125,8 @@ CREATE TABLE `FeedPost` (
 
 CREATE TABLE `Found` (
   `ReportID` int(11) NOT NULL,
-  `location_found` varchar(255) NOT NULL
+  `location_found` varchar(255) NOT NULL,
+  `vague_item_name` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -144,16 +152,17 @@ CREATE TABLE `Person` (
   `email` varchar(100) NOT NULL,
   `phone_number` varchar(20) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
-  `person_type` enum('User','Administrator') NOT NULL
+  `person_type` enum('User','Administrator') NOT NULL,
+  `account_status` enum('Active','Deactivated','Suspended') DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `Person`
 --
 
-INSERT INTO `Person` (`PersonID`, `name`, `email`, `phone_number`, `password`, `person_type`) VALUES
-(1, 'System Admin', 'admin@usc.edu.ph', '09123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator'),
-(2, 'John Student', 'john.student@usc.edu.ph', '09987654321', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'User');
+INSERT INTO `Person` (`PersonID`, `name`, `email`, `phone_number`, `password`, `person_type`, `account_status`) VALUES
+(1, 'System Admin', 'admin@usc.edu.ph', '09123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'Active'),
+(2, 'John Student', 'john.student@usc.edu.ph', '09987654321', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'User', 'Active');
 
 -- --------------------------------------------------------
 
@@ -187,7 +196,7 @@ CREATE TABLE `Report` (
 
 CREATE TABLE `User` (
   `UserID` int(11) NOT NULL,
-  `role` enum('Student','Teacher','Staff','Visitor','Cashier','Guard','Janitor') NOT NULL
+  `role` enum('Student','Teacher','Staff','Visitor','Cashier','Guard','Janitor','Alumni','Contractor') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -280,7 +289,7 @@ ALTER TABLE `User`
 -- AUTO_INCREMENT for table `ApprovalStatus`
 --
 ALTER TABLE `ApprovalStatus`
-  MODIFY `ApprovalStatusID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `ApprovalStatusID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `Claim`
