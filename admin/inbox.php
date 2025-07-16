@@ -329,7 +329,7 @@ $stats = mysqli_fetch_assoc($stats_result);
             color: #dc3545;
         }
         
-        /* Email Modal Styles */
+        /* Modal Styles */
         .modal {
             position: fixed;
             z-index: 1000;
@@ -392,73 +392,6 @@ $stats = mysqli_fetch_assoc($stats_result);
         
         .close:hover {
             background-color: rgba(255,255,255,0.2);
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        
-        .email-status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            display: none;
-        }
-        
-        .email-status.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .email-status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .email-type-info {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
         }
         
         /* Notification Styles */
@@ -721,8 +654,6 @@ $stats = mysqli_fetch_assoc($stats_result);
                                 </a>
                             <?php endif; ?>
                             
-                            <button type="button" class="btn btn-info send-email-btn" data-contact-id="<?php echo $row['ContactID']; ?>" data-claimant-name="<?php echo htmlspecialchars($row['claimant_name']); ?>">Send Email</button>
-                            
                             <!-- Archive/Soft Delete Button -->
                             <button type="button" class="btn btn-secondary archive-btn" data-contact-id="<?php echo $row['ContactID']; ?>" data-report-id="<?php echo $row['ReportID']; ?>">Archive</button>
                         </div>
@@ -736,46 +667,6 @@ $stats = mysqli_fetch_assoc($stats_result);
                 <p>When users submit contact requests to claim items, they will appear here for your review.</p>
             </div>
         <?php endif; ?>
-    </div>
-    
-    <!-- Email Modal -->
-    <div id="emailModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Send Email to <span id="modalClaimantName"></span></h3>
-                <span class="close" onclick="closeEmailModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="emailForm">
-                    <input type="hidden" id="modalContactId" name="contact_id">
-                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                    
-                    <div class="email-status" id="emailStatus"></div>
-                    
-                    <div class="form-group">
-                        <label for="email_type">Email Type:</label>
-                        <select id="email_type" name="email_type" required>
-                            <option value="">Select email type...</option>
-                            <option value="status_update">Status Update</option>
-                            <option value="request_info">Request Additional Information</option>
-                            <option value="claim_reminder">Claim Reminder</option>
-                            <option value="custom">Custom Message</option>
-                        </select>
-                        <div class="email-type-info" id="emailTypeInfo"></div>
-                    </div>
-                    
-                    <div class="form-group" id="customMessageGroup" style="display: none;">
-                        <label for="custom_message">Custom Message:</label>
-                        <textarea id="custom_message" name="custom_message" rows="4" placeholder="Enter your custom message here..."></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="sendEmailBtn">Send Email</button>
-                        <button type="button" class="btn btn-secondary" onclick="closeEmailModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
     
     <!-- Image Preview Modal -->
@@ -973,14 +864,6 @@ $stats = mysqli_fetch_assoc($stats_result);
                 }
             }
             
-            // Handle send email buttons
-            if (e.target.classList.contains('send-email-btn')) {
-                const contactId = e.target.getAttribute('data-contact-id');
-                const claimantName = e.target.getAttribute('data-claimant-name');
-                
-                openEmailModal(contactId, claimantName);
-            }
-            
             // Handle archive buttons
             if (e.target.classList.contains('archive-btn')) {
                 const contactId = e.target.getAttribute('data-contact-id');
@@ -1004,7 +887,7 @@ $stats = mysqli_fetch_assoc($stats_result);
                         body: formData
                     })
                     .then(response => response.json())
-                    .then data => {
+                    .then(data => {
                         if (data.success) {
                             showNotification('success', data.message);
                             // Remove the card from the view
@@ -1061,12 +944,7 @@ $stats = mysqli_fetch_assoc($stats_result);
         
         // Close image modal when clicking outside
         window.addEventListener('click', function(e) {
-            const emailModal = document.getElementById('emailModal');
             const imageModal = document.getElementById('imageModal');
-            
-            if (e.target === emailModal) {
-                closeEmailModal();
-            }
             
             if (e.target === imageModal) {
                 closeImageModal();
@@ -1076,24 +954,11 @@ $stats = mysqli_fetch_assoc($stats_result);
         // Handle keyboard navigation for modals
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const emailModal = document.getElementById('emailModal');
                 const imageModal = document.getElementById('imageModal');
-                
-                if (emailModal.style.display === 'flex') {
-                    closeEmailModal();
-                }
                 
                 if (imageModal.style.display === 'flex') {
                     closeImageModal();
                 }
-            }
-        });
-        
-        // Close modal when clicking outside
-        window.addEventListener('click', function(e) {
-            const modal = document.getElementById('emailModal');
-            if (e.target === modal) {
-                closeEmailModal();
             }
         });
     </script>
