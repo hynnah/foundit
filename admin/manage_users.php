@@ -98,6 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 try {
                 switch ($action) {
                     case 'make_admin':
+                        // Prevent making system admin (ID=1) a regular user (this shouldn't happen anyway)
+                        if ($userId == 1) {
+                            $error_message = "Cannot modify system administrator (ID=1).";
+                            break;
+                        }
+                        
                         // Check if user already exists in Administrator table
                         $check_sql = "SELECT AdminID FROM Administrator WHERE AdminID = ?";
                         $check_stmt = mysqli_prepare($connection, $check_sql);
@@ -196,6 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         break;
                         
                     case 'edit_user':
+                        // Prevent editing of system admin (ID=1)
+                        if ($userId == 1) {
+                            $error_message = "Cannot edit system administrator (ID=1).";
+                            break;
+                        }
+                        
                         $edit_name = trim($_POST['edit_name'] ?? '');
                         $edit_email = trim($_POST['edit_email'] ?? '');
                         $edit_phone = trim($_POST['edit_phone'] ?? '');
@@ -593,12 +605,13 @@ $stats = mysqli_fetch_assoc($stats_result);
                                                         Make Admin
                                                     </button>
                                                 <?php endif; ?>
-                                            </form>
-                                            <!-- Edit User Button -->
-                                            <button type="button" class="btn-sm secondary" 
-                                                    onclick="openEditUserModal(<?php echo $user['UserID']; ?>, '<?php echo htmlspecialchars($user['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['phone_number'], ENT_QUOTES); ?>', '<?php echo $user['person_type']; ?>', '<?php echo htmlspecialchars($user['role'] ?? '', ENT_QUOTES); ?>')">
-                                                Edit
-                                            </button>
+                                            </form>                            <!-- Edit User Button -->
+                            <?php if ($user['UserID'] != 1): // Can't edit system admin ?>
+                                <button type="button" class="btn-sm secondary" 
+                                        onclick="openEditUserModal(<?php echo $user['UserID']; ?>, '<?php echo htmlspecialchars($user['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['phone_number'], ENT_QUOTES); ?>', '<?php echo $user['person_type']; ?>', '<?php echo htmlspecialchars($user['role'] ?? '', ENT_QUOTES); ?>')">
+                                    Edit
+                                </button>
+                            <?php endif; ?>
                                             <?php if ($user['UserID'] != 1 && $user['UserID'] != getUserId()): ?>
                                                 <form method="POST" style="display: inline;">
                                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
