@@ -16,7 +16,7 @@ if (!$post_id || !is_numeric($post_id)) {
 }
 
 // Get post details
-$sql = "SELECT r.*, fp.*, f.location_found, p.name as submitter_name
+$sql = "SELECT r.*, fp.*, f.location_found, f.vague_item_name, p.name as submitter_name
         FROM FeedPost fp
         JOIN Report r ON fp.ReportID = r.ReportID
         JOIN Found f ON r.ReportID = f.ReportID
@@ -337,7 +337,7 @@ ob_start();
         <div class="item-info">
             <div class="info-item">
                 <span class="info-label">Item Name:</span>
-                <span class="info-value"><?php echo htmlspecialchars($post['item_name']); ?></span>
+                <span class="info-value"><?php echo isset($post['vague_item_name']) ? htmlspecialchars($post['vague_item_name']) : '<em>Not specified</em>'; ?></span>
             </div>
             <div class="info-item">
                 <span class="info-label">Location Found:</span>
