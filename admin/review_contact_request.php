@@ -4,6 +4,7 @@ requireAdmin(); // Only admins can access this page
 
 require_once '../functions.php';
 require_once '../dbh.inc.php';
+require_once '../email_service.php';
 
 $user_name = getUserName();
 $content_header = "Review Contact Request";
@@ -116,6 +117,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
     }
+}
+
+/**
+ * Send contact request notification email to claimant
+ */
+function sendContactRequestNotification($to, $name, $itemName, $status, $adminNotes) {
+    global $emailService;
+    $subject = "Your Contact Request for '$itemName' - $status";
+    $message = "<p>Dear " . htmlspecialchars($name) . ",</p>";
+    $message .= "<p>Your contact request for the item '<strong>" . htmlspecialchars($itemName) . "</strong>' has been <strong>" . htmlspecialchars($status) . "</strong>.</p>";
+    if (!empty($adminNotes)) {
+        $message .= "<p><strong>Admin Notes:</strong><br>" . nl2br(htmlspecialchars($adminNotes)) . "</p>";
+    }
+    $message .= "<p>If you have any questions, please reply to this email.</p>";
+    $message .= "<p>Thank you,<br>FoundIt Admin Team</p>";
+    return $emailService->sendEmail($to, $subject, $message, true);
 }
 
 // Note: Verification questions feature not implemented in current database schema
@@ -297,22 +314,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <h3>Review Actions</h3>
                     <form method="POST" class="review-form">
                         <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                        
                         <div class="form-group">
-                            <label for="admin_notes">Admin Notes (Optional):</label>
-                            <textarea name="admin_notes" id="admin_notes" rows="4" placeholder="Add any notes about your decision..."></textarea>
+                            <label for="admin_notes">Admin Notes (required for rejection):</label>
+                            <textarea id="admin_notes" name="admin_notes" rows="3" placeholder="Add notes for approval or specify reason for rejection..." required></textarea>
                         </div>
-                        
                         <div class="action-buttons">
-                            <button type="submit" name="action" value="approve" class="btn success" onclick="return confirm('Are you sure you want to approve this contact request?')">
-                                ✅ Approve Request
-                            </button>
-                            <button type="submit" name="action" value="reject" class="btn danger" onclick="return confirm('Are you sure you want to reject this contact request?')">
-                                ❌ Reject Request
-                            </button>
+                            <button type="submit" name="action" value="approve" class="btn success">Approve</button>
+                            <div class="rejection-dropdown">
+                                <button type="button" class="btn danger rejection-dropdown-toggle">Quick Reject ▼</button>
+                                <div class="rejection-dropdown-menu">
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Insufficient Proof of Ownership">Insufficient Proof of Ownership</a>
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Need More Information">Need More Information</a>
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Description Doesn't Match Item">Description Doesn't Match Item</a>
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Item Already Claimed">Item Already Claimed</a>
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Invalid or Fraudulent Claim">Invalid or Fraudulent Claim</a>
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Missing Required Documents">Missing Required Documents</a>
+                                    <a href="#" class="rejection-dropdown-item reject-reason" data-reason="Other">Other (specify reason)...</a>
+                                </div>
+                            </div>
+                            <button type="submit" name="action" value="reject" id="hiddenRejectBtn" style="display:none;"></button>
                         </div>
                     </form>
                 </div>
+                <style>
+                .rejection-dropdown { position: relative; display: inline-block; }
+                .rejection-dropdown-menu { display: none; position: absolute; left: 0; top: 100%; min-width: 220px; background: #fff; border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 100; border-radius: 4px; padding: 0.5em 0; }
+                .rejection-dropdown-menu.show { display: block; }
+                .rejection-dropdown-item { display: block; padding: 8px 16px; color: #333; text-decoration: none; cursor: pointer; transition: background 0.2s; }
+                .rejection-dropdown-item:hover { background: #f8d7da; color: #721c24; }
+                </style>
+                <script>
+                document.addEventListener('click', function(e) {
+                    // Dropdown toggle
+                    if (e.target.classList.contains('rejection-dropdown-toggle')) {
+                        e.preventDefault();
+                        const button = e.target;
+                        const dropdown = button.closest('.rejection-dropdown');
+                        const menu = dropdown.querySelector('.rejection-dropdown-menu');
+                        // Close other dropdowns
+                        document.querySelectorAll('.rejection-dropdown-menu').forEach(m => { if (m !== menu) m.classList.remove('show'); });
+                        menu.classList.toggle('show');
+                        button.style.backgroundColor = menu.classList.contains('show') ? '#c82333' : '#dc3545';
+                    }
+                    // Dropdown item click
+                    if (e.target.classList.contains('reject-reason')) {
+                        e.preventDefault();
+                        const reasonText = e.target.getAttribute('data-reason');
+                        // Set reason in notes
+                        const notes = document.getElementById('admin_notes');
+                        if (notes) notes.value = reasonText;
+                        // Close dropdown
+                        const dropdown = e.target.closest('.rejection-dropdown');
+                        const dropdownToggle = dropdown.querySelector('.rejection-dropdown-toggle');
+                        dropdown.querySelector('.rejection-dropdown-menu').classList.remove('show');
+                        dropdownToggle.style.backgroundColor = '#dc3545';
+                        // Submit reject form
+                        document.getElementById('hiddenRejectBtn').click();
+                    }
+                });
+                // Close dropdowns when clicking outside
+                window.addEventListener('click', function(e) {
+                    if (!e.target.closest('.rejection-dropdown')) {
+                        document.querySelectorAll('.rejection-dropdown-menu').forEach(m => m.classList.remove('show'));
+                        document.querySelectorAll('.rejection-dropdown-toggle').forEach(b => b.style.backgroundColor = '#dc3545');
+                    }
+                });
+                </script>
             <?php endif; ?>
         </div>
 
@@ -525,6 +592,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             color: white;
         }
 
+        .btn.info {
+            background: #17a2b8;
+            color: white;
+        }
+
         .btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -551,6 +623,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        .rejection-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .rejection-dropdown-menu {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+            min-width: 200px;
+        }
+
+        .rejection-dropdown-item {
+            display: block;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .rejection-dropdown-item:hover {
+            background: #f1f1f1;
         }
 
         @media (max-width: 768px) {

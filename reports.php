@@ -24,6 +24,8 @@ if ($search) {
     $params[] = $search_param;
     $param_types .= 'sss';
 }
+// Exclude archived items for user-end
+$where_conditions[] = "(fp.post_status IS NULL OR fp.post_status != 'archived')";
 
 $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
 

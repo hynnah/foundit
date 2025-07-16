@@ -747,6 +747,11 @@ $stats = mysqli_fetch_assoc($stats_result);
                                 </a>
                             <?php endif; ?>
                             
+                            <!-- Reactivate Button for non-pending requests -->
+                            <?php if ($row['review_status'] !== 'Pending'): ?>
+                                <button type="button" class="btn btn-info reactivate-btn" data-contact-id="<?php echo $row['ContactID']; ?>">Reactivate</button>
+                            <?php endif; ?>
+                            
                             <!-- Archive/Soft Delete Button -->
                             <button type="button" class="btn btn-secondary archive-btn" data-contact-id="<?php echo $row['ContactID']; ?>" data-report-id="<?php echo $row['ReportID']; ?>">Archive</button>
                         </div>
@@ -1040,7 +1045,74 @@ $stats = mysqli_fetch_assoc($stats_result);
                     });
                 }
             }
+            
+            // Handle reactivate button
+            if (e.target.classList.contains('reactivate-btn')) {
+                const contactId = e.target.getAttribute('data-contact-id');
+                const button = e.target;
+                const originalText = button.textContent;
+                if (confirm('Are you sure you want to reactivate this contact request?')) {
+                    button.disabled = true;
+                    button.textContent = 'Reactivating...';
+                    button.style.opacity = '0.6';
+                    const formData = new FormData();
+                    formData.append('contact_id', contactId);
+                    formData.append('action', 'reactivate');
+                    formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
+                    fetch('handle_contact_request.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('success', data.message);
+                            location.reload();
+                        } else {
+                            showNotification('error', data.message || 'An error occurred');
+                            button.disabled = false;
+                            button.textContent = originalText;
+                            button.style.opacity = '1';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('error', 'An error occurred while reactivating the request');
+                        button.disabled = false;
+                        button.textContent = originalText;
+                        button.style.opacity = '1';
+                    });
+                }
+            }
         });
+        
+        // Handle Quick Reject function
+        function handleQuickReject(contactId, claimantName, reason, reasonText) {
+            if (!contactId || !reason) return;
+            if (!confirm(`Reject request from ${claimantName}? Reason: ${reasonText}`)) return;
+            // AJAX request to backend
+            const formData = new FormData();
+            formData.append('contact_id', contactId);
+            formData.append('action', 'reject');
+            formData.append('reject_reason', reasonText);
+            formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
+            fetch('handle_contact_request.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('success', 'Request rejected successfully.');
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showNotification('error', data.message || 'Failed to reject request.');
+                }
+            })
+            .catch(() => {
+                showNotification('error', 'Network error. Please try again.');
+            });
+        }
         
         // Close rejection dropdowns when clicking outside
         document.addEventListener('click', function(e) {

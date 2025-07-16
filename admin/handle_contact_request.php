@@ -4,6 +4,7 @@ requireAdmin(); // Only admins can access this endpoint
 
 require_once '../functions.php';
 require_once '../dbh.inc.php';
+require_once '../email_service.php';
 
 // Set JSON response header
 header('Content-Type: application/json');
@@ -27,6 +28,7 @@ try {
     $contactId = $_POST['contact_id'] ?? '';
     $action = $_POST['action'] ?? '';
     $adminNotes = trim($_POST['admin_notes'] ?? '');
+    $rejectReason = trim($_POST['reject_reason'] ?? '');
 
     if (!$contactId || !is_numeric($contactId)) {
         http_response_code(400);
@@ -34,7 +36,7 @@ try {
         exit;
     }
 
-    if (!in_array($action, ['approve', 'reject'])) {
+    if (!in_array($action, ['approve', 'reject', 'reactivate'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         exit;
@@ -68,15 +70,28 @@ try {
     $contact = mysqli_fetch_assoc($result);
     mysqli_stmt_close($stmt_check);
     
-    if ($contact['review_status'] !== 'Pending') {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Contact request is not pending (current status: ' . $contact['review_status'] . ')']);
-        exit;
+    // For reactivate action, allow non-pending requests
+    if ($action === 'reactivate') {
+        if ($contact['review_status'] === 'Pending') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Contact request is already pending']);
+            exit;
+        }
+    } else {
+        // For approve/reject actions, require pending status
+        if ($contact['review_status'] !== 'Pending') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Contact request is not pending (current status: ' . $contact['review_status'] . ')']);
+            exit;
+        }
     }
     
     // Set status based on action
-    $status = ($action === 'approve') ? 'Approved' : 'Rejected';
+    $status = ($action === 'approve') ? 'Approved' : (($action === 'reject') ? 'Rejected' : 'Pending');
     $adminId = getUserId();
+    
+    // Use reject reason if provided, otherwise use admin notes
+    $finalNotes = ($action === 'reject' && !empty($rejectReason)) ? $rejectReason : $adminNotes;
     
     // Start transaction
     mysqli_autocommit($connection, FALSE);
@@ -95,7 +110,7 @@ try {
             throw new Exception('Failed to prepare update query: ' . mysqli_error($connection));
         }
         
-        mysqli_stmt_bind_param($stmt_update, "sisi", $status, $adminId, $adminNotes, $contactId);
+        mysqli_stmt_bind_param($stmt_update, "sisi", $status, $adminId, $finalNotes, $contactId);
         
         if (!mysqli_stmt_execute($stmt_update)) {
             throw new Exception('Failed to update contact request: ' . mysqli_stmt_error($stmt_update));
@@ -151,7 +166,7 @@ try {
                     $claimant['name'], 
                     $contact['item_name'], 
                     $status, 
-                    $adminNotes
+                    $finalNotes
                 );
                 
                 if ($emailSent) {
@@ -186,5 +201,31 @@ try {
         'message' => 'A system error occurred. Please try again or contact support if the problem persists.',
         'debug' => $e->getMessage() // Remove this in production
     ]);
+}
+
+/**
+ * Send contact request notification email to claimant
+ */
+function sendContactRequestNotification($to, $name, $itemName, $status, $adminNotes) {
+    global $emailService;
+    
+    $subject = "Your Contact Request for '$itemName' - $status";
+    $message = "<p>Dear " . htmlspecialchars($name) . ",</p>";
+    $message .= "<p>Your contact request for the item '<strong>" . htmlspecialchars($itemName) . "</strong>' has been <strong>" . htmlspecialchars($status) . "</strong>.</p>";
+    
+    if (!empty($adminNotes)) {
+        $message .= "<p><strong>Admin Notes:</strong><br>" . nl2br(htmlspecialchars($adminNotes)) . "</p>";
+    }
+    
+    if ($status === 'Approved') {
+        $message .= "<p>You can now proceed with the claim process. Please check your account for further instructions.</p>";
+    } elseif ($status === 'Pending') {
+        $message .= "<p>Your request has been reactivated and is now under review again.</p>";
+    }
+    
+    $message .= "<p>If you have any questions, please reply to this email.</p>";
+    $message .= "<p>Thank you,<br>FoundIt Admin Team</p>";
+    
+    return $emailService->sendEmail($to, $subject, $message, true);
 }
 ?>
