@@ -19,8 +19,7 @@ if ($isAdmin) {
                 cr.ownership_description, 
                 cr.submission_date, 
                 cr.review_status,
-                cr.detailed_description,
-                cr.evidence_details,
+                cr.evidence_file_path,
                 p.name as claimant_name,
                 p.email as claimant_email,
                 r.item_name,
@@ -40,15 +39,14 @@ if ($isAdmin) {
                 cr.ownership_description, 
                 cr.submission_date, 
                 cr.review_status,
-                cr.detailed_description,
-                cr.evidence_details,
+                cr.evidence_file_path,
                 cr.review_notes,
                 r.item_name,
                 r.description as item_description,
                 fp.PostID,
                 c.claim_status,
                 c.interrogation_notes,
-                c.passed_interrogation,
+                c.passed_interrogationYN,
                 c.resolution_date
             FROM ContactRequest cr
             JOIN FeedPost fp ON cr.PostID = fp.PostID
@@ -283,12 +281,12 @@ ob_start();
                     <p><strong>Item Description:</strong> <?php echo htmlspecialchars($row['item_description']); ?></p>
                     <p><strong>Ownership Description:</strong> <?php echo htmlspecialchars($row['ownership_description']); ?></p>
                     
-                    <?php if ($row['detailed_description']): ?>
-                        <p><strong>Detailed Description:</strong> <?php echo htmlspecialchars($row['detailed_description']); ?></p>
+                    <?php if ($row['ownership_description']): ?>
+                        <p><strong>Detailed Description:</strong> <?php echo htmlspecialchars($row['ownership_description']); ?></p>
                     <?php endif; ?>
                     
-                    <?php if ($row['evidence_details']): ?>
-                        <p><strong>Evidence Details:</strong> <?php echo htmlspecialchars($row['evidence_details']); ?></p>
+                    <?php if ($row['evidence_file_path']): ?>
+                        <p><strong>Evidence Details:</strong> <?php echo htmlspecialchars($row['evidence_details_path']); ?></p>
                     <?php endif; ?>
                     
                     <?php if (!$isAdmin && isset($row['review_notes']) && $row['review_notes']): ?>
@@ -310,10 +308,10 @@ ob_start();
                                 <p><strong>Interrogation Notes:</strong> <?php echo htmlspecialchars($row['interrogation_notes']); ?></p>
                             <?php endif; ?>
                             
-                            <?php if ($row['passed_interrogation'] !== null): ?>
+                            <?php if ($row['passed_interrogationYN'] !== null): ?>
                                 <p><strong>Interrogation Result:</strong> 
-                                    <span class="status-badge status-<?php echo $row['passed_interrogation'] ? 'approved' : 'rejected'; ?>">
-                                        <?php echo $row['passed_interrogation'] ? 'Passed' : 'Failed'; ?>
+                                    <span class="status-badge status-<?php echo $row['passed_interrogationYN'] ? 'approved' : 'rejected'; ?>">
+                                        <?php echo $row['passed_interrogationYN'] ? 'Passed' : 'Failed'; ?>
                                     </span>
                                 </p>
                             <?php endif; ?>

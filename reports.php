@@ -146,12 +146,22 @@ ob_start();
         word-wrap: break-word;
     }
     
-    .status-badge {
+    .status-badge.active {
         padding: 4px 8px;
         border-radius: 15px;
         font-size: 0.8rem;
         font-weight: bold;
         background: #51cf66;
+        color: white;
+        text-transform: uppercase;
+    }
+
+    .status-badge.pending {
+        padding: 4px 8px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        background: #ffe38ef2;
         color: white;
         text-transform: uppercase;
     }

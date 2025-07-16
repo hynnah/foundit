@@ -21,8 +21,7 @@ $sql = "SELECT
             cr.ownership_description, 
             cr.submission_date, 
             cr.review_status,
-            cr.detailed_description,
-            cr.evidence_details,
+            cr.evidence_file_path,
             cr.review_notes,
             cr.review_date,
             r.item_name,
@@ -390,11 +389,11 @@ ob_start();
                         </div>
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($request['evidence_details'])): ?>
+                <?php if (!empty($request['evidence_file_path'])): ?>
                     <div class="info-row">
                         <strong>Evidence Details:</strong>
                         <div class="message-content">
-                            <?php echo nl2br(htmlspecialchars($request['evidence_details'])); ?>
+                            <?php echo nl2br(htmlspecialchars($request['evidence_file_path'])); ?>
                         </div>
                     </div>
                 <?php endif; ?>
