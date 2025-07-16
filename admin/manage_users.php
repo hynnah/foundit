@@ -28,12 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Validation
             if (empty($name) || empty($email) || empty($password) || empty($confirm_password) || empty($role)) {
                 $error_message = "Please fill in all required fields.";
-            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $error_message = "Invalid email format.";
+            } elseif (strlen($name) < 2 || strlen($name) > 100) {
+                $error_message = "Name must be between 2 and 100 characters.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) {
+                $error_message = "Invalid email format or email too long (max 100 characters).";
+            } elseif (!empty($phone) && (!preg_match('/^[0-9]{10,15}$/', $phone) || strlen($phone) > 20)) {
+                $error_message = "Phone number must contain only numbers and be 10-15 digits long.";
             } elseif ($password !== $confirm_password) {
                 $error_message = "Passwords do not match.";
-            } elseif (strlen($password) < 6) {
-                $error_message = "Password must be at least 6 characters long.";
+            } elseif (strlen($password) < 8) {
+                $error_message = "Password must be at least 8 characters long.";
             } else {
                 // Check if email already exists
                 $check_email_sql = "SELECT PersonID FROM Person WHERE email = ?";
@@ -90,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Handle other actions
             $userId = $_POST['user_id'] ?? '';
             
-            if ($userId && in_array($action, ['make_admin', 'remove_admin', 'delete_user', 'edit_user'])) {
+            if ($userId && in_array($action, ['make_admin', 'remove_admin', 'delete_user', 'activate_user', 'edit_user'])) {
                 try {
                 switch ($action) {
                     case 'make_admin':
@@ -154,68 +158,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     case 'delete_user':
                         // Prevent deletion of system admin (ID=1)
                         if ($userId == 1) {
-                            $error_message = "Cannot delete system administrator (ID=1).";
+                            $error_message = "Cannot deactivate system administrator (ID=1).";
                             break;
                         }
                         
                         // Prevent deletion of current user
                         if ($userId == getUserId()) {
-                            $error_message = "Cannot delete your own account.";
+                            $error_message = "Cannot deactivate your own account.";
                             break;
                         }
                         
-                        // Check if user is admin and ensure not the last admin
-                        $check_admin_sql = "SELECT person_type FROM Person WHERE PersonID = ?";
-                        $check_admin_stmt = mysqli_prepare($connection, $check_admin_sql);
-                        mysqli_stmt_bind_param($check_admin_stmt, "i", $userId);
-                        mysqli_stmt_execute($check_admin_stmt);
-                        $admin_check_result = mysqli_stmt_get_result($check_admin_stmt);
-                        $user_info = mysqli_fetch_assoc($admin_check_result);
+                        // Soft delete: Update account_status to 'Deactivated'
+                        $deactivate_sql = "UPDATE Person SET account_status = 'Deactivated' WHERE PersonID = ?";
+                        $deactivate_stmt = mysqli_prepare($connection, $deactivate_sql);
+                        mysqli_stmt_bind_param($deactivate_stmt, "i", $userId);
+                        mysqli_stmt_execute($deactivate_stmt);
                         
-                        if ($user_info['person_type'] === 'Administrator') {
-                            $count_sql = "SELECT COUNT(*) as admin_count FROM Administrator";
-                            $count_result = mysqli_query($connection, $count_sql);
-                            $admin_count = mysqli_fetch_assoc($count_result)['admin_count'];
-                            
-                            if ($admin_count <= 1) {
-                                $error_message = "Cannot delete the last administrator.";
-                                break;
-                            }
+                        if (mysqli_stmt_affected_rows($deactivate_stmt) > 0) {
+                            $success_message = "User account has been deactivated.";
+                        } else {
+                            $error_message = "Error deactivating user account.";
                         }
+                        break;
                         
-                        // Begin transaction
-                        mysqli_begin_transaction($connection);
+                    case 'activate_user':
+                        // Activate user: Update account_status to 'Active'
+                        $activate_sql = "UPDATE Person SET account_status = 'Active' WHERE PersonID = ?";
+                        $activate_stmt = mysqli_prepare($connection, $activate_sql);
+                        mysqli_stmt_bind_param($activate_stmt, "i", $userId);
+                        mysqli_stmt_execute($activate_stmt);
                         
-                        try {
-                            // Remove from Administrator table if admin
-                            if ($user_info['person_type'] === 'Administrator') {
-                                $delete_admin_sql = "DELETE FROM Administrator WHERE AdminID = ?";
-                                $delete_admin_stmt = mysqli_prepare($connection, $delete_admin_sql);
-                                mysqli_stmt_bind_param($delete_admin_stmt, "i", $userId);
-                                mysqli_stmt_execute($delete_admin_stmt);
-                            }
-                            
-                            // Delete from User table
-                            $delete_user_sql = "DELETE FROM User WHERE UserID = ?";
-                            $delete_user_stmt = mysqli_prepare($connection, $delete_user_sql);
-                            mysqli_stmt_bind_param($delete_user_stmt, "i", $userId);
-                            mysqli_stmt_execute($delete_user_stmt);
-                            
-                            // Delete from Person table
-                            $delete_person_sql = "DELETE FROM Person WHERE PersonID = ?";
-                            $delete_person_stmt = mysqli_prepare($connection, $delete_person_sql);
-                            mysqli_stmt_bind_param($delete_person_stmt, "i", $userId);
-                            mysqli_stmt_execute($delete_person_stmt);
-                            
-                            // Commit transaction
-                            mysqli_commit($connection);
-                            
-                            $success_message = "User deleted successfully.";
-                            
-                        } catch (Exception $e) {
-                            // Rollback transaction
-                            mysqli_rollback($connection);
-                            $error_message = "Error deleting user: " . $e->getMessage();
+                        if (mysqli_stmt_affected_rows($activate_stmt) > 0) {
+                            $success_message = "User account has been activated.";
+                        } else {
+                            $error_message = "Error activating user account.";
                         }
                         break;
                         
@@ -233,8 +209,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             break;
                         }
                         
-                        if (!filter_var($edit_email, FILTER_VALIDATE_EMAIL)) {
-                            $error_message = "Invalid email format.";
+                        if (strlen($edit_name) < 2 || strlen($edit_name) > 100) {
+                            $error_message = "Name must be between 2 and 100 characters.";
+                            break;
+                        }
+                        
+                        if (!filter_var($edit_email, FILTER_VALIDATE_EMAIL) || strlen($edit_email) > 100) {
+                            $error_message = "Invalid email format or email too long (max 100 characters).";
+                            break;
+                        }
+                        
+                        if (!empty($edit_phone) && (!preg_match('/^[0-9]{10,15}$/', $edit_phone) || strlen($edit_phone) > 20)) {
+                            $error_message = "Phone number must contain only numbers and be 10-15 digits long.";
+                            break;
+                        }
+                        
+                        if (!empty($edit_password) && strlen($edit_password) < 8) {
+                            $error_message = "Password must be at least 8 characters long.";
                             break;
                         }
                         
@@ -370,7 +361,7 @@ if ($filter_role === 'admin') {
 $where_clause = $where_conditions ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
 
 // Get users
-$sql = "SELECT p.PersonID as UserID, p.name, p.email, p.phone_number, p.person_type,
+$sql = "SELECT p.PersonID as UserID, p.name, p.email, p.phone_number, p.person_type, p.account_status,
                u.role,
                (SELECT COUNT(*) FROM Report WHERE UserID_submitter = p.PersonID) as report_count
         FROM Person p
@@ -412,12 +403,12 @@ $total_pages = ceil($total_users / $limit);
 $sql_stats = "SELECT 
                 COUNT(*) as total_users,
                 SUM(CASE WHEN person_type = 'User' THEN 1 ELSE 0 END) as regular_users,
-                SUM(CASE WHEN person_type = 'Administrator' THEN 1 ELSE 0 END) as admin_users
+                SUM(CASE WHEN person_type = 'Administrator' THEN 1 ELSE 0 END) as admin_users,
+                SUM(CASE WHEN account_status = 'Active' THEN 1 ELSE 0 END) as active_users,
+                SUM(CASE WHEN account_status = 'Deactivated' THEN 1 ELSE 0 END) as inactive_users
               FROM Person";
 $stats_result = mysqli_query($connection, $sql_stats);
 $stats = mysqli_fetch_assoc($stats_result);
-$stats['active_users'] = $stats['total_users']; // Since we don't have account_status
-$stats['inactive_users'] = 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -470,6 +461,14 @@ $stats['inactive_users'] = 0;
                 </div>
             </div>
             
+            <div class="stat-card danger">
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <h3><?php echo $stats['inactive_users']; ?></h3>
+                    <p>Inactive Users</p>
+                </div>
+            </div>
+            
             <div class="stat-card warning">
                 <div class="stat-icon">👥</div>
                 <div class="stat-content">
@@ -491,9 +490,11 @@ $stats['inactive_users'] = 0;
         <div class="search-filters">
             <div class="filter-header">
                 <h3>User Management</h3>
-                <button type="button" class="btn primary" onclick="showCreateUserModal()">
-                    <i class="fas fa-plus"></i> Create New User
-                </button>
+                <div>
+                    <button type="button" class="btn primary" onclick="openCreateUserModal()">
+                        <i class="fas fa-plus"></i> Create New User
+                    </button>
+                </div>
             </div>
             <form method="GET" class="filters-form" id="filterForm">
                 <div class="filter-group">
@@ -524,6 +525,7 @@ $stats['inactive_users'] = 0;
                         <th>Contact</th>
                         <th>Role</th>
                         <th>System Role</th>
+                        <th>Status</th>
                         <th>Reports</th>
                         <th>Actions</th>
                     </tr>
@@ -560,6 +562,16 @@ $stats['inactive_users'] = 0;
                                         <span class="text-muted">-</span>
                                     <?php endif; ?>
                                 </td>
+                                <td>
+                                    <?php
+                                    $account_status = $user['account_status'] ?? 'Active';
+                                    $statusClass = strtolower($account_status);
+                                    $statusColor = $account_status === 'Active' ? 'success' : 'danger';
+                                    ?>
+                                    <span class="status-badge <?php echo $statusColor; ?>">
+                                        <?php echo htmlspecialchars($account_status); ?>
+                                    </span>
+                                </td>
                                 <td><?php echo $user['report_count']; ?></td>
                                 <td>
                                     <div class="action-buttons">
@@ -583,16 +595,26 @@ $stats['inactive_users'] = 0;
                                                 <?php endif; ?>
                                             </form>
                                             <!-- Edit User Button -->
-                                            <button type="button" class="btn-sm secondary" onclick="openEditModal(<?php echo $user['UserID']; ?>, '<?php echo htmlspecialchars($user['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['phone_number'], ENT_QUOTES); ?>', '<?php echo $user['person_type']; ?>', '<?php echo htmlspecialchars($user['role'] ?? '', ENT_QUOTES); ?>')">
+                                            <button type="button" class="btn-sm secondary" 
+                                                    onclick="openEditUserModal(<?php echo $user['UserID']; ?>, '<?php echo htmlspecialchars($user['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($user['phone_number'], ENT_QUOTES); ?>', '<?php echo $user['person_type']; ?>', '<?php echo htmlspecialchars($user['role'] ?? '', ENT_QUOTES); ?>')">
                                                 Edit
                                             </button>
                                             <?php if ($user['UserID'] != 1 && $user['UserID'] != getUserId()): ?>
                                                 <form method="POST" style="display: inline;">
                                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                                     <input type="hidden" name="user_id" value="<?php echo $user['UserID']; ?>">
-                                                    <button type="submit" name="action" value="delete_user" class="btn-sm danger" onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
-                                                        Delete
-                                                    </button>
+                                                    
+                                                    <?php 
+                                                    $account_status = $user['account_status'] ?? 'Active';
+                                                    if ($account_status === 'Active'): ?>
+                                                        <button type="submit" name="action" value="delete_user" class="btn-sm danger" onclick="return confirm('Are you sure you want to deactivate this user?')">
+                                                            Deactivate
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <button type="submit" name="action" value="activate_user" class="btn-sm success" onclick="return confirm('Are you sure you want to activate this user?')">
+                                                            Activate
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </form>
                                             <?php endif; ?>
                                         <?php else: ?>
@@ -604,7 +626,7 @@ $stats['inactive_users'] = 0;
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" class="text-center">No users found</td>
+                            <td colspan="7" class="text-center">No users found</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -646,17 +668,26 @@ $stats['inactive_users'] = 0;
                 
                 <div class="form-group">
                     <label for="create_name">Full Name *</label>
-                    <input type="text" id="create_name" name="name" required>
+                    <input type="text" id="create_name" name="name" required maxlength="100" 
+                           placeholder="Enter full name (2-100 characters)">
+                    <div class="char-counter" id="create_name_counter">0/100 characters</div>
                 </div>
                 
                 <div class="form-group">
                     <label for="create_email">Email Address *</label>
-                    <input type="email" id="create_email" name="email" required>
+                    <input type="email" id="create_email" name="email" required maxlength="100" 
+                           placeholder="Enter email address">
+                    <div class="char-counter" id="create_email_counter">0/100 characters</div>
                 </div>
                 
                 <div class="form-group">
                     <label for="create_phone">Phone Number</label>
-                    <input type="tel" id="create_phone" name="phone" pattern="[0-9]+" title="Please enter numbers only">
+                    <input type="tel" id="create_phone" name="phone" 
+                           pattern="[0-9]{10,15}" 
+                           title="Please enter 10-15 digits only" 
+                           maxlength="15"
+                           placeholder="Enter phone number (10-15 digits)">
+                    <div class="validation-message" id="create_phone-validation" style="display: none;"></div>
                 </div>
                 
                 <div class="form-row">
@@ -728,18 +759,27 @@ $stats['inactive_users'] = 0;
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_name">Full Name *</label>
-                        <input type="text" name="edit_name" id="edit_name" required>
+                        <input type="text" name="edit_name" id="edit_name" required maxlength="100" 
+                               placeholder="Enter full name (2-100 characters)">
+                        <div class="char-counter" id="edit_name_counter">0/100 characters</div>
                     </div>
                     <div class="form-group">
                         <label for="edit_email">Email *</label>
-                        <input type="email" name="edit_email" id="edit_email" required>
+                        <input type="email" name="edit_email" id="edit_email" required maxlength="100" 
+                               placeholder="Enter email address">
+                        <div class="char-counter" id="edit_email_counter">0/100 characters</div>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_phone">Phone Number</label>
-                        <input type="text" name="edit_phone" id="edit_phone">
+                        <input type="tel" name="edit_phone" id="edit_phone" 
+                               pattern="[0-9]{10,15}" 
+                               title="Please enter 10-15 digits only" 
+                               maxlength="15"
+                               placeholder="Enter phone number (10-15 digits)">
+                        <div class="validation-message" id="edit_phone-validation" style="display: none;"></div>
                     </div>
                     <div class="form-group">
                         <label for="edit_role">System Role</label>
@@ -815,6 +855,7 @@ $stats['inactive_users'] = 0;
 
         .stat-card.primary { border-left: 4px solid #007bff; }
         .stat-card.success { border-left: 4px solid #28a745; }
+        .stat-card.danger { border-left: 4px solid #dc3545; }
         .stat-card.warning { border-left: 4px solid #ffc107; }
         .stat-card.info { border-left: 4px solid #17a2b8; }
 
@@ -949,6 +990,17 @@ $stats['inactive_users'] = 0;
         .role-badge.admin { background: #d1ecf1; color: #0c5460; }
         .role-badge.user { background: #e2e3e5; color: #383d41; }
 
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .status-badge.success { background: #d4edda; color: #155724; }
+        .status-badge.danger { background: #f8d7da; color: #721c24; }
+        .status-badge.warning { background: #fff3cd; color: #856404; }
+
         .system-role {
             font-size: 0.9em;
             color: #666;
@@ -1071,12 +1123,12 @@ $stats['inactive_users'] = 0;
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 99999;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0,0,0,0.8);
         }
         
         .modal-content {
@@ -1086,9 +1138,11 @@ $stats['inactive_users'] = 0;
             border-radius: 12px;
             width: 95%;
             max-width: 650px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             max-height: 90vh;
             overflow-y: auto;
+            position: relative;
+            z-index: 100000;
         }
         
         .modal-header {
@@ -1233,11 +1287,37 @@ $stats['inactive_users'] = 0;
                 flex-direction: column;
             }
         }
+
+        /* Character counter styles */
+        .char-counter {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+            text-align: right;
+        }
+
+        .char-counter.warning {
+            color: #ff6b35;
+        }
+
+        .char-counter.error {
+            color: #dc3545;
+        }
+        
+        .validation-message {
+            font-size: 12px;
+            color: #dc3545;
+            margin-top: 5px;
+            padding: 5px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+        }
     </style>
 
     <script>
-        // Modal functions
-        function showCreateUserModal() {
+        // Simple modal functions - back to basics
+        function openCreateUserModal() {
             document.getElementById('createUserModal').style.display = 'block';
         }
         
@@ -1246,8 +1326,7 @@ $stats['inactive_users'] = 0;
             document.getElementById('createUserForm').reset();
         }
         
-        // Edit User Modal functions
-        function openEditModal(userId, name, email, phone, userType, role) {
+        function openEditUserModal(userId, name, email, phone, userType, role) {
             document.getElementById('edit_user_id').value = userId;
             document.getElementById('edit_name').value = name;
             document.getElementById('edit_email').value = email;
@@ -1260,7 +1339,6 @@ $stats['inactive_users'] = 0;
         
         function closeEditUserModal() {
             document.getElementById('editUserModal').style.display = 'none';
-            document.getElementById('editUserForm').reset();
         }
         
         function toggleModalPassword(fieldId) {
@@ -1278,26 +1356,136 @@ $stats['inactive_users'] = 0;
             }
         }
         
-        // Phone number validation
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const createModal = document.getElementById('createUserModal');
+            const editModal = document.getElementById('editUserModal');
+            
+            if (event.target === createModal) {
+                closeCreateUserModal();
+            } else if (event.target === editModal) {
+                closeEditUserModal();
+            }
+        }
+        
+        // Character counter function
+        function updateCharCounter(input, maxLength, counterId) {
+            const current = input.value.length;
+            const counter = document.getElementById(counterId);
+            
+            if (counter) {
+                counter.textContent = current + '/' + maxLength + ' characters';
+                
+                // Update counter color based on usage
+                if (current >= maxLength * 0.9) {
+                    counter.className = 'char-counter error';
+                } else if (current >= maxLength * 0.7) {
+                    counter.className = 'char-counter warning';
+                } else {
+                    counter.className = 'char-counter';
+                }
+            }
+        }
+        
+        // Validation helper functions
+        function showValidationMessage(fieldId, message) {
+            const validationDiv = document.getElementById(fieldId + '-validation');
+            if (validationDiv) {
+                validationDiv.textContent = message;
+                validationDiv.style.display = 'block';
+            }
+        }
+        
+        function hideValidationMessage(fieldId) {
+            const validationDiv = document.getElementById(fieldId + '-validation');
+            if (validationDiv) {
+                validationDiv.style.display = 'none';
+            }
+        }
+        
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize character counters
+            const createNameField = document.getElementById('create_name');
+            const createEmailField = document.getElementById('create_email');
+            const editNameField = document.getElementById('edit_name');
+            const editEmailField = document.getElementById('edit_email');
+            
+            if (createNameField) {
+                createNameField.addEventListener('input', function() {
+                    updateCharCounter(this, 100, 'create_name_counter');
+                });
+                updateCharCounter(createNameField, 100, 'create_name_counter');
+            }
+            
+            if (createEmailField) {
+                createEmailField.addEventListener('input', function() {
+                    updateCharCounter(this, 100, 'create_email_counter');
+                });
+                updateCharCounter(createEmailField, 100, 'create_email_counter');
+            }
+            
+            if (editNameField) {
+                editNameField.addEventListener('input', function() {
+                    updateCharCounter(this, 100, 'edit_name_counter');
+                });
+                updateCharCounter(editNameField, 100, 'edit_name_counter');
+            }
+            
+            if (editEmailField) {
+                editEmailField.addEventListener('input', function() {
+                    updateCharCounter(this, 100, 'edit_email_counter');
+                });
+                updateCharCounter(editEmailField, 100, 'edit_email_counter');
+            }
+            
+            // Phone number validation
             const phoneField = document.getElementById('create_phone');
             const editPhoneField = document.getElementById('edit_phone');
             
             if (phoneField) {
                 phoneField.addEventListener('input', function(e) {
                     this.value = this.value.replace(/[^0-9]/g, '');
+                    
+                    // Validate phone number
+                    if (this.value.length > 0 && this.value.length < 10) {
+                        showValidationMessage('create_phone', 'Phone number must be at least 10 digits');
+                    } else if (this.value.length > 15) {
+                        showValidationMessage('create_phone', 'Phone number cannot exceed 15 digits');
+                    } else if (this.value.length >= 10 && this.value.length <= 15) {
+                        hideValidationMessage('create_phone');
+                    }
+                });
+                
+                phoneField.addEventListener('blur', function(e) {
+                    if (this.value.length === 0) {
+                        hideValidationMessage('create_phone');
+                    }
                 });
             }
             
             if (editPhoneField) {
                 editPhoneField.addEventListener('input', function(e) {
                     this.value = this.value.replace(/[^0-9]/g, '');
+                    
+                    // Validate phone number
+                    if (this.value.length > 0 && this.value.length < 10) {
+                        showValidationMessage('edit_phone', 'Phone number must be at least 10 digits');
+                    } else if (this.value.length > 15) {
+                        showValidationMessage('edit_phone', 'Phone number cannot exceed 15 digits');
+                    } else if (this.value.length >= 10 && this.value.length <= 15) {
+                        hideValidationMessage('edit_phone');
+                    }
+                });
+                
+                editPhoneField.addEventListener('blur', function(e) {
+                    if (this.value.length === 0) {
+                        hideValidationMessage('edit_phone');
+                    }
                 });
             }
-        });
-        
-        // Password confirmation validation
-        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Password confirmation validation
             const confirmPasswordField = document.getElementById('create_confirm_password');
             if (confirmPasswordField) {
                 confirmPasswordField.addEventListener('input', function(e) {
@@ -1312,52 +1500,9 @@ $stats['inactive_users'] = 0;
                 });
             }
         });
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const createModal = document.getElementById('createUserModal');
-            const editModal = document.getElementById('editUserModal');
-            
-            if (event.target === createModal) {
-                closeCreateUserModal();
-            } else if (event.target === editModal) {
-                closeEditUserModal();
-            }
-        }
-        
-        // Enhanced filter functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const filterForm = document.querySelector('#filterForm');
-            if (filterForm) {
-                const inputs = filterForm.querySelectorAll('input, select');
-                inputs.forEach(function(input) {
-                    input.addEventListener('change', function() {
-                        console.log('Filter changed:', this.name, '=', this.value);
-                    });
-                });
-                
-                // Add submit handler for debugging
-                filterForm.addEventListener('submit', function(e) {
-                    console.log('Form submitted with values:');
-                    const formData = new FormData(this);
-                    for (let [key, value] of formData.entries()) {
-                        console.log(key, '=', value);
-                    }
-                });
-            }
-            
-            // Ensure select elements are properly initialized
-            const roleSelect = document.querySelector('select[name="role"]');
-            if (roleSelect) {
-                console.log('Role select current value:', roleSelect.value);
-                console.log('Role select options:', Array.from(roleSelect.options).map(opt => opt.value));
-            }
-        });
     </script>
 
     <?php
         $page_content = ob_get_clean();
         include_once "../includes/admin_layout.php";
     ?>
-
-</html>

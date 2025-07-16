@@ -26,6 +26,7 @@ $sql = "SELECT cr.*,
                r.report_type,
                l.location_last_seen,
                f.location_found,
+               f.vague_item_name,
                r.incident_date,
                r.image_path,
                fp.PostID,
@@ -238,17 +239,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <?php echo nl2br(htmlspecialchars($contact_request['ownership_description'] ?? 'No description provided')); ?>
                     </div>
                     
-                    <?php if (!empty($contact_request['detailed_description'])): ?>
-                        <p><strong>Detailed Description:</strong></p>
+                    <?php if (!empty($contact_request['item_appearance'])): ?>
+                        <p><strong>Item Appearance:</strong></p>
                         <div class="message-box">
-                            <?php echo nl2br(htmlspecialchars($contact_request['detailed_description'])); ?>
+                            <?php echo nl2br(htmlspecialchars($contact_request['item_appearance'])); ?>
                         </div>
                     <?php endif; ?>
                     
-                    <?php if (!empty($contact_request['evidence_details'])): ?>
-                        <p><strong>Evidence Details:</strong></p>
+                    <?php if (!empty($contact_request['location_lost'])): ?>
+                        <p><strong>Location Lost:</strong></p>
                         <div class="message-box">
-                            <?php echo nl2br(htmlspecialchars($contact_request['evidence_details'])); ?>
+                            <?php echo htmlspecialchars($contact_request['location_lost']); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($contact_request['date_lost'])): ?>
+                        <p><strong>Date Lost:</strong></p>
+                        <div class="message-box">
+                            <?php echo formatDate($contact_request['date_lost'], 'M d, Y'); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($contact_request['unique_marks'])): ?>
+                        <p><strong>Unique Marks:</strong></p>
+                        <div class="message-box">
+                            <?php echo nl2br(htmlspecialchars($contact_request['unique_marks'])); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($contact_request['evidence_file_path'])): ?>
+                        <p><strong>Evidence File:</strong></p>
+                        <div class="message-box">
+                            <a href="<?php echo htmlspecialchars($contact_request['evidence_file_path']); ?>" target="_blank">
+                                <?php echo htmlspecialchars($contact_request['evidence_file_name'] ?? 'View File'); ?>
+                            </a>
                         </div>
                     <?php endif; ?>
                     

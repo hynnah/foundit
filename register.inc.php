@@ -14,11 +14,32 @@ if (isset($_POST['signup-submit'])) {
         header("Location: register.php?error=emptyfields&name=".$name."&email=".$email."&phone=".$phone."&role=".$role);
         exit();
     }
-    else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    
+    // Validate name length
+    if (strlen($name) < 2 || strlen($name) > 100) {
+        header("Location: register.php?error=invalidname&email=".$email."&phone=".$phone."&role=".$role);
+        exit();
+    }
+    
+    // Validate email format and length
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) {
         header("Location: register.php?error=invalidemail&name=".$name."&phone=".$phone."&role=".$role);
         exit();
     }
-    else if ($password !== $passwordRepeat) {
+    
+    // Validate phone number (numbers only, 10-15 digits)
+    if (!empty($phone) && (!preg_match('/^[0-9]{10,15}$/', $phone) || strlen($phone) > 20)) {
+        header("Location: register.php?error=invalidphone&name=".$name."&email=".$email."&role=".$role);
+        exit();
+    }
+    
+    // Validate password strength
+    if (strlen($password) < 6) {
+        header("Location: register.php?error=passwordweak&name=".$name."&email=".$email."&phone=".$phone."&role=".$role);
+        exit();
+    }
+    
+    if ($password !== $passwordRepeat) {
         header("Location: register.php?error=passwordmismatch&name=".$name."&email=".$email."&phone=".$phone."&role=".$role);
         exit();
     }

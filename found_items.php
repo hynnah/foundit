@@ -15,7 +15,7 @@ $params = [];
 $param_types = '';
 
 if ($search) {
-    $where_conditions[] = "(r.item_name LIKE ? OR r.description LIKE ? OR f.location_found LIKE ?)";
+    $where_conditions[] = "(f.vague_item_name LIKE ? OR r.description LIKE ? OR f.location_found LIKE ?)";
     $search_param = "%$search%";
     $params[] = $search_param;
     $params[] = $search_param;
@@ -30,6 +30,7 @@ $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
 
 $sql = "SELECT r.*, 
                f.location_found,
+               f.vague_item_name,
                fp.post_status,
                fp.post_date,
                fp.PostID,
@@ -254,7 +255,7 @@ ob_start();
                 <tbody>
                     <?php while ($row = mysqli_fetch_assoc($result)): ?>
                         <tr>
-                            <td class="item-name"><?php echo htmlspecialchars($row['item_name']); ?></td>
+                            <td class="item-name"><?php echo htmlspecialchars($row['vague_item_name'] ?? $row['item_name']); ?></td>
                             <td class="item-description"><?php echo htmlspecialchars(truncateText($row['description'], 100)); ?></td>
                             <td><?php echo htmlspecialchars($row['location_found']); ?></td>
                             <td><?php echo formatDate($row['incident_date'], 'M d, Y'); ?></td>

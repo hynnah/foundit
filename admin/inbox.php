@@ -15,8 +15,12 @@ $sql = "SELECT
             cr.ownership_description, 
             cr.submission_date, 
             cr.review_status,
-            cr.detailed_description,
-            cr.evidence_details,
+            cr.item_appearance,
+            cr.location_lost,
+            cr.date_lost,
+            cr.evidence_file_path,
+            cr.evidence_file_name,
+            cr.unique_marks,
             cr.review_notes,
             cr.review_date,
             p.name as claimant_name,
@@ -25,10 +29,11 @@ $sql = "SELECT
             r.item_name,
             r.description as item_description,
             r.image_path,
+            r.ReportID,
             fp.PostID,
             c.claim_status,
             c.interrogation_notes,
-            c.passed_interrogation,
+            c.passed_interrogationYN,
             c.resolution_date
         FROM ContactRequest cr
         JOIN User u ON cr.UserID_claimant = u.UserID
@@ -36,6 +41,7 @@ $sql = "SELECT
         JOIN FeedPost fp ON cr.PostID = fp.PostID
         JOIN Report r ON fp.ReportID = r.ReportID
         LEFT JOIN Claim c ON cr.ContactID = c.ContactID
+        WHERE r.archiveYN = 0
         ORDER BY 
             CASE WHEN cr.review_status = 'Pending' THEN 1 
                  WHEN cr.review_status = 'Approved' THEN 2 
@@ -579,12 +585,48 @@ $stats = mysqli_fetch_assoc($stats_result);
                             <p><strong>Item Description:</strong> <?php echo htmlspecialchars($row['item_description']); ?></p>
                             <p><strong>Ownership Description:</strong> <?php echo htmlspecialchars($row['ownership_description']); ?></p>
                             
-                            <?php if ($row['detailed_description']): ?>
-                                <p><strong>Detailed Description:</strong> <?php echo htmlspecialchars($row['detailed_description']); ?></p>
+                            <?php if ($row['item_appearance']): ?>
+                                <p><strong>Item Appearance:</strong> <?php echo htmlspecialchars($row['item_appearance']); ?></p>
                             <?php endif; ?>
                             
-                            <?php if ($row['evidence_details']): ?>
-                                <p><strong>Evidence Details:</strong> <?php echo htmlspecialchars($row['evidence_details']); ?></p>
+                            <?php if ($row['location_lost']): ?>
+                                <p><strong>Location Lost:</strong> <?php echo htmlspecialchars($row['location_lost']); ?></p>
+                            <?php endif; ?>
+                            
+                            <?php if ($row['date_lost']): ?>
+                                <p><strong>Date Lost:</strong> <?php echo formatDate($row['date_lost'], 'M d, Y'); ?></p>
+                            <?php endif; ?>
+                            
+                            <?php if ($row['unique_marks']): ?>
+                                <p><strong>Unique Marks:</strong> <?php echo htmlspecialchars($row['unique_marks']); ?></p>
+                            <?php endif; ?>
+                            
+                            <?php if ($row['evidence_file_path']): ?>
+                                <p><strong>Evidence File:</strong> 
+                                    <a href="<?php echo htmlspecialchars($row['evidence_file_path']); ?>" target="_blank">
+                                        <?php echo htmlspecialchars($row['evidence_file_name'] ?? 'View File'); ?>
+                                    </a>
+                                </p>
+                                <?php
+                                // Check if evidence file is an image
+                                $evidenceFile = $row['evidence_file_path'];
+                                $evidenceExt = strtolower(pathinfo($evidenceFile, PATHINFO_EXTENSION));
+                                $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                                if (in_array($evidenceExt, $imageExtensions)):
+                                ?>
+                                    <div style="margin-top: 10px;">
+                                        <p><strong>Evidence Preview:</strong></p>
+                                        <img src="<?php echo htmlspecialchars($evidenceFile); ?>" 
+                                             alt="Evidence Preview" 
+                                             class="item-image"
+                                             style="max-width: 150px; max-height: 150px; border: 2px solid #007bff; border-radius: 8px; cursor: pointer;"
+                                             onclick="openImageModal(this.src, '<?php echo htmlspecialchars($row['evidence_file_name'] ?? 'Evidence Image'); ?>')"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div style="display:none; padding:10px; background:#f8f9fa; border-radius:4px; text-align:center; color:#666; font-size:12px;">
+                                            <p>Evidence image not found</p>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             <?php endif; ?>
                             
                             <?php if ($row['image_path']): ?>
@@ -629,10 +671,10 @@ $stats = mysqli_fetch_assoc($stats_result);
                                         <p><strong>Interrogation Notes:</strong> <?php echo htmlspecialchars($row['interrogation_notes']); ?></p>
                                     <?php endif; ?>
                                     
-                                    <?php if ($row['passed_interrogation'] !== null): ?>
+                                    <?php if ($row['passed_interrogationYN'] !== null): ?>
                                         <p><strong>Interrogation Result:</strong> 
-                                            <span class="status-badge status-<?php echo $row['passed_interrogation'] ? 'approved' : 'rejected'; ?>">
-                                                <?php echo $row['passed_interrogation'] ? 'Passed' : 'Failed'; ?>
+                                            <span class="status-badge status-<?php echo $row['passed_interrogationYN'] ? 'approved' : 'rejected'; ?>">
+                                                <?php echo $row['passed_interrogationYN'] ? 'Passed' : 'Failed'; ?>
                                             </span>
                                         </p>
                                     <?php endif; ?>
@@ -645,8 +687,15 @@ $stats = mysqli_fetch_assoc($stats_result);
                         </div>
                         
                         <div class="request-actions">
+                            <!-- Single Review/View Button -->
                             <?php if ($row['review_status'] === 'Pending'): ?>
                                 <a href="review_contact_request.php?id=<?php echo $row['ContactID']; ?>" class="btn btn-primary">Review Request</a>
+                            <?php else: ?>
+                                <a href="view_contact_request.php?id=<?php echo $row['ContactID']; ?>" class="btn btn-primary">View Details</a>
+                            <?php endif; ?>
+                            
+                            <!-- Quick Actions for Pending Requests -->
+                            <?php if ($row['review_status'] === 'Pending'): ?>
                                 <button type="button" class="btn btn-success quick-approve" data-contact-id="<?php echo $row['ContactID']; ?>">Quick Approve</button>
                                 <div class="rejection-dropdown">
                                     <button type="button" class="btn btn-danger rejection-dropdown-toggle" data-contact-id="<?php echo $row['ContactID']; ?>" data-claimant-name="<?php echo htmlspecialchars($row['claimant_name']); ?>">
@@ -662,14 +711,20 @@ $stats = mysqli_fetch_assoc($stats_result);
                                         <a href="#" class="rejection-dropdown-item reject-reason" data-reason="other">Other (specify reason)...</a>
                                     </div>
                                 </div>
-                            <?php elseif ($row['review_status'] === 'Approved' && !$row['claim_status']): ?>
-                                <a href="create_claim.php?contact_id=<?php echo $row['ContactID']; ?>" class="btn btn-warning">Create Claim</a>
-                            <?php elseif ($row['claim_status'] === 'Processing'): ?>
-                                <a href="process_claim.php?contact_id=<?php echo $row['ContactID']; ?>" class="btn btn-primary">Process Claim</a>
+                            <?php elseif ($row['review_status'] === 'Approved'): ?>
+                                <a href="create_claim.php?contact_id=<?php echo $row['ContactID']; ?>" class="btn btn-warning">
+                                    <?php if (!$row['claim_status']): ?>
+                                        <i class="fas fa-clipboard-check"></i> Process Claim
+                                    <?php else: ?>
+                                        <i class="fas fa-cog"></i> Manage Claim
+                                    <?php endif; ?>
+                                </a>
                             <?php endif; ?>
                             
-                            <a href="view_contact_request.php?id=<?php echo $row['ContactID']; ?>" class="btn btn-secondary">View Details</a>
                             <button type="button" class="btn btn-info send-email-btn" data-contact-id="<?php echo $row['ContactID']; ?>" data-claimant-name="<?php echo htmlspecialchars($row['claimant_name']); ?>">Send Email</button>
+                            
+                            <!-- Archive/Soft Delete Button -->
+                            <button type="button" class="btn btn-secondary archive-btn" data-contact-id="<?php echo $row['ContactID']; ?>" data-report-id="<?php echo $row['ReportID']; ?>">Archive</button>
                         </div>
                     </div>
                 <?php endwhile; ?>
@@ -719,6 +774,19 @@ $stats = mysqli_fetch_assoc($stats_result);
                         <button type="button" class="btn btn-secondary" onclick="closeEmailModal()">Cancel</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Preview Modal -->
+    <div id="imageModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh;">
+            <div class="modal-header">
+                <h3 id="imageModalTitle">Image Preview</h3>
+                <span class="close" onclick="closeImageModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 20px;">
+                <img id="modalImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             </div>
         </div>
     </div>
@@ -912,6 +980,58 @@ $stats = mysqli_fetch_assoc($stats_result);
                 
                 openEmailModal(contactId, claimantName);
             }
+            
+            // Handle archive buttons
+            if (e.target.classList.contains('archive-btn')) {
+                const contactId = e.target.getAttribute('data-contact-id');
+                const reportId = e.target.getAttribute('data-report-id');
+                
+                if (confirm('Are you sure you want to archive this report? This will remove it from the active view but can be restored later.')) {
+                    // Disable button and show loading state
+                    const button = e.target;
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    button.textContent = 'Archiving...';
+                    button.style.opacity = '0.6';
+                    
+                    const formData = new FormData();
+                    formData.append('report_id', reportId);
+                    formData.append('action', 'archive');
+                    formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
+                    
+                    fetch('update_report_status.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then data => {
+                        if (data.success) {
+                            showNotification('success', data.message);
+                            // Remove the card from the view
+                            const card = button.closest('.request-card');
+                            if (card) {
+                                card.style.transition = 'opacity 0.3s ease';
+                                card.style.opacity = '0';
+                                setTimeout(() => {
+                                    card.remove();
+                                }, 300);
+                            }
+                        } else {
+                            showNotification('error', data.message || 'An error occurred');
+                            button.disabled = false;
+                            button.textContent = originalText;
+                            button.style.opacity = '1';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('error', 'An error occurred while archiving the report');
+                        button.disabled = false;
+                        button.textContent = originalText;
+                        button.style.opacity = '1';
+                    });
+                }
+            }
         });
         
         // Close rejection dropdowns when clicking outside
@@ -927,147 +1047,46 @@ $stats = mysqli_fetch_assoc($stats_result);
             }
         });
         
-        function handleQuickReject(contactId, claimantName, reason, reasonText) {
-            let adminNotes = reasonText;
-            
-            // If "Other" is selected, prompt for custom reason
-            if (reason === 'other') {
-                const customReason = prompt('Please specify the reason for rejection:');
-                if (!customReason || customReason.trim() === '') {
-                    return; // User cancelled or entered empty reason
-                }
-                adminNotes = customReason.trim();
-            }
-            
-            // Confirm rejection
-            if (confirm(`Are you sure you want to reject this contact request?\n\nReason: ${adminNotes}`)) {
-                const formData = new FormData();
-                formData.append('contact_id', contactId);
-                formData.append('action', 'reject');
-                formData.append('admin_notes', adminNotes);
-                formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
-                
-                fetch('handle_contact_request.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('success', data.message);
-                        location.reload();
-                    } else {
-                        showNotification('error', data.message || 'An error occurred');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('error', 'An error occurred while processing the rejection');
-                });
-            }
+        // Image Modal Functions
+        function openImageModal(imageSrc, imageTitle) {
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('imageModalTitle').textContent = imageTitle || 'Image Preview';
+            document.getElementById('imageModal').style.display = 'flex';
         }
         
-        function openEmailModal(contactId, claimantName) {
-            document.getElementById('modalContactId').value = contactId;
-            document.getElementById('modalClaimantName').textContent = claimantName;
-            document.getElementById('emailModal').style.display = 'flex';
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+            document.getElementById('modalImage').src = '';
         }
         
-        function closeEmailModal() {
-            document.getElementById('emailModal').style.display = 'none';
-            document.getElementById('emailForm').reset();
-            document.getElementById('customMessageGroup').style.display = 'none';
-            document.getElementById('emailTypeInfo').style.display = 'none';
-            document.getElementById('emailStatus').style.display = 'none';
-            document.getElementById('sendEmailBtn').disabled = false;
-            document.getElementById('sendEmailBtn').textContent = 'Send Email';
-        }
-        
-        // Handle email type change
-        document.getElementById('email_type').addEventListener('change', function() {
-            const customMessageGroup = document.getElementById('customMessageGroup');
-            const emailTypeInfo = document.getElementById('emailTypeInfo');
+        // Close image modal when clicking outside
+        window.addEventListener('click', function(e) {
+            const emailModal = document.getElementById('emailModal');
+            const imageModal = document.getElementById('imageModal');
             
-            if (this.value === 'custom') {
-                customMessageGroup.style.display = 'block';
-                document.getElementById('custom_message').required = true;
-                emailTypeInfo.innerHTML = 'Send a personalized message to the claimant.';
-            } else {
-                customMessageGroup.style.display = 'none';
-                document.getElementById('custom_message').required = false;
-                
-                // Show description for selected email type
-                switch (this.value) {
-                    case 'status_update':
-                        emailTypeInfo.innerHTML = 'Send an automated status update about their contact request.';
-                        break;
-                    case 'request_info':
-                        emailTypeInfo.innerHTML = 'Request additional information to verify their claim.';
-                        break;
-                    case 'claim_reminder':
-                        emailTypeInfo.innerHTML = 'Send a reminder to complete their approved claim.';
-                        break;
-                    default:
-                        emailTypeInfo.innerHTML = '';
-                }
+            if (e.target === emailModal) {
+                closeEmailModal();
             }
             
-            emailTypeInfo.style.display = this.value ? 'block' : 'none';
+            if (e.target === imageModal) {
+                closeImageModal();
+            }
         });
         
-        // Handle email form submission
-        document.getElementById('emailForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const sendButton = document.getElementById('sendEmailBtn');
-            const emailStatus = document.getElementById('emailStatus');
-            
-            // Show loading state
-            sendButton.disabled = true;
-            sendButton.textContent = 'Sending...';
-            emailStatus.style.display = 'none';
-            
-            fetch('send_email.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+        // Handle keyboard navigation for modals
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const emailModal = document.getElementById('emailModal');
+                const imageModal = document.getElementById('imageModal');
+                
+                if (emailModal.style.display === 'flex') {
+                    closeEmailModal();
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    emailStatus.innerHTML = '✅ ' + data.message;
-                    emailStatus.className = 'email-status success';
-                    emailStatus.style.display = 'block';
-                    
-                    // Show global notification
-                    showNotification('success', 'Email sent successfully!');
-                    
-                    // Auto-close modal after 2 seconds
-                    setTimeout(() => {
-                        closeEmailModal();
-                    }, 2000);
-                } else {
-                    emailStatus.innerHTML = '❌ Error: ' + data.message;
-                    emailStatus.className = 'email-status error';
-                    emailStatus.style.display = 'block';
+                
+                if (imageModal.style.display === 'flex') {
+                    closeImageModal();
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                emailStatus.innerHTML = '❌ An error occurred while sending the email. Please try again.';
-                emailStatus.className = 'email-status error';
-                emailStatus.style.display = 'block';
-            })
-            .finally(() => {
-                // Reset button state
-                sendButton.disabled = false;
-                sendButton.textContent = 'Send Email';
-            });
+            }
         });
         
         // Close modal when clicking outside

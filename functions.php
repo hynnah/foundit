@@ -71,36 +71,6 @@ function logActivity($userId, $action, $details = '') {
 }
 
 /**
- * Send email notification using the email service
- */
-function sendEmailNotification($to, $subject, $message, $isHTML = true) {
-    require_once 'email_service.php';
-    $emailService = new EmailService();
-    
-    return $emailService->sendEmail($to, $subject, $message, $isHTML);
-}
-
-/**
- * Send contact request notification to claimant
- */
-function sendContactRequestNotification($to, $claimantName, $itemName, $status, $adminNotes = '') {
-    require_once 'email_service.php';
-    $emailService = new EmailService();
-    
-    return $emailService->sendContactRequestNotification($to, $claimantName, $itemName, $status, $adminNotes);
-}
-
-/**
- * Send admin notification about new contact request
- */
-function sendAdminNotification($adminEmail, $claimantName, $itemName, $contactId) {
-    require_once 'email_service.php';
-    $emailService = new EmailService();
-    
-    return $emailService->sendAdminNotification($adminEmail, $claimantName, $itemName, $contactId);
-}
-
-/**
  * Calculate days since date
  */
 function daysSince($date) {

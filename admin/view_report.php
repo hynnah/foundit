@@ -297,14 +297,46 @@ if ($report['PostID']) {
                                     </div>
                                     <?php if (!empty($contact['detailed_description'])): ?>
                                         <div class="info-row">
-                                            <strong>Detailed Description:</strong>
-                                            <span><?php echo nl2br(htmlspecialchars($contact['detailed_description'])); ?></span>
+                                            <strong>Ownership Description:</strong>
+                                            <span><?php echo nl2br(htmlspecialchars($contact['ownership_description'])); ?></span>
                                         </div>
                                     <?php endif; ?>
-                                    <?php if (!empty($contact['evidence_details'])): ?>
+                                    <?php if (!empty($contact['item_appearance'])): ?>
                                         <div class="info-row">
-                                            <strong>Evidence Details:</strong>
-                                            <span><?php echo nl2br(htmlspecialchars($contact['evidence_details'])); ?></span>
+                                            <strong>Item Appearance:</strong>
+                                            <span><?php echo nl2br(htmlspecialchars($contact['item_appearance'])); ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($contact['location_lost'])): ?>
+                                        <div class="info-row">
+                                            <strong>Location Lost:</strong>
+                                            <span><?php echo htmlspecialchars($contact['location_lost']); ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($contact['date_lost'])): ?>
+                                        <div class="info-row">
+                                            <strong>Date Lost:</strong>
+                                            <span><?php echo formatDate($contact['date_lost'], 'M d, Y'); ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($contact['unique_marks'])): ?>
+                                        <div class="info-row">
+                                            <strong>Unique Marks:</strong>
+                                            <span><?php echo nl2br(htmlspecialchars($contact['unique_marks'])); ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($contact['evidence_file_path'])): ?>
+                                        <div class="info-row">
+                                            <strong>Evidence File:</strong>
+                                            <span>
+                                                <a href="<?php echo htmlspecialchars($contact['evidence_file_path']); ?>" target="_blank">
+                                                    <?php echo htmlspecialchars($contact['evidence_file_name'] ?? 'View File'); ?>
+                                                </a>
+                                            </span>
                                         </div>
                                     <?php endif; ?>
                                     <div class="contact-meta">

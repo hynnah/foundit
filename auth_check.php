@@ -20,6 +20,26 @@ if (!isset($_SESSION['userId']) || empty($_SESSION['userId'])) {
     exit();
 }
 
+// Check if user account is still active
+require_once 'dbh.inc.php';
+$userId = $_SESSION['userId'];
+$sql = "SELECT account_status FROM Person WHERE PersonID = ?";
+$stmt = mysqli_stmt_init($connection);
+if (mysqli_stmt_prepare($stmt, $sql)) {
+    mysqli_stmt_bind_param($stmt, "i", $userId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    
+    if ($row && isset($row['account_status']) && $row['account_status'] === 'Deactivated') {
+        // Account has been deactivated, destroy session and redirect
+        session_unset();
+        session_destroy();
+        header("Location: " . getRedirectPath('login.php?error=accountdeactivated'));
+        exit();
+    }
+}
+
 // Check session validity
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 86400)) {
     // Session expired after 24 hours

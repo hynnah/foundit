@@ -31,6 +31,21 @@
         .toggle-password:hover {
             color: #cb7f00;
         }
+        
+        .validation-message {
+            font-size: 12px;
+            color: #dc3545;
+            margin-top: 5px;
+            padding: 5px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+        }
+        
+        .form-group input:valid + .validation-message,
+        .form-group input:focus:valid + .validation-message {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -44,9 +59,15 @@
                 if (isset($_GET["error"])) {
                     $error = $_GET["error"];
                     if ($error === "emptyfields") {
-                        echo '<p class="error-message">Please fill in all fields.</p>';
+                        echo '<p class="error-message">Please fill in all required fields.</p>';
                     } else if ($error === "invalidemail") {
-                        echo '<p class="error-message">Invalid email format.</p>';
+                        echo '<p class="error-message">Invalid email format or too long.</p>';
+                    } else if ($error === "invalidname") {
+                        echo '<p class="error-message">Name must be between 2-100 characters.</p>';
+                    } else if ($error === "invalidphone") {
+                        echo '<p class="error-message">Phone number must be 10-15 digits (numbers only).</p>';
+                    } else if ($error === "passwordweak") {
+                        echo '<p class="error-message">Password must be at least 6 characters long.</p>';
                     } else if ($error === "passwordmismatch") {
                         echo '<p class="error-message">Passwords do not match.</p>';
                     } else if ($error === "emailtaken") {
@@ -66,19 +87,27 @@
                 <div class="form-group">
                     <label for="name">Full Name</label>
                     <input type="text" id="name" name="name" required placeholder="Enter your full name" 
+                           maxlength="100" minlength="2"
                            value="<?php echo isset($_GET["name"]) ? htmlspecialchars($_GET["name"]) : ''; ?>">
+                    <div class="validation-message" id="name-validation" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" name="email" required placeholder="Enter your email"
+                           maxlength="100" pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
                            value="<?php echo isset($_GET["email"]) ? htmlspecialchars($_GET["email"]) : ''; ?>">
+                    <div class="validation-message" id="email-validation" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" pattern="[0-9]+" title="Please enter numbers only"
+                    <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" 
+                           pattern="[0-9]{10,15}" title="Please enter 10-15 digits only (no letters, spaces, or special characters)"
+                           maxlength="15" minlength="10"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            value="<?php echo isset($_GET["phone"]) ? htmlspecialchars($_GET["phone"]) : ''; ?>">
+                    <div class="validation-message" id="phone-validation" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
@@ -99,6 +128,7 @@
                             <i class="fas fa-eye" id="password-toggle-icon"></i>
                         </button>
                     </div>
+                    <div class="validation-message" id="password-validation" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
@@ -109,6 +139,7 @@
                             <i class="fas fa-eye" id="password-repeat-toggle-icon"></i>
                         </button>
                     </div>
+                    <div class="validation-message" id="password-repeat-validation" style="display: none;"></div>
                 </div>
                 
                 <button type="submit" name="signup-submit" class="signup-button">Sign Up</button>
@@ -136,10 +167,114 @@
             }
         }
         
+        // Real-time validation functions
+        function showValidationMessage(fieldId, message) {
+            const validationDiv = document.getElementById(fieldId + '-validation');
+            if (validationDiv) {
+                validationDiv.textContent = message;
+                validationDiv.style.display = 'block';
+            }
+        }
+        
+        function hideValidationMessage(fieldId) {
+            const validationDiv = document.getElementById(fieldId + '-validation');
+            if (validationDiv) {
+                validationDiv.style.display = 'none';
+            }
+        }
+        
         // Phone number validation
         document.getElementById('phone').addEventListener('input', function(e) {
             // Remove any non-digit characters
             this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Validate length
+            if (this.value.length > 0 && this.value.length < 10) {
+                showValidationMessage('phone', 'Phone number must be at least 10 digits');
+            } else if (this.value.length > 15) {
+                showValidationMessage('phone', 'Phone number cannot exceed 15 digits');
+            } else if (this.value.length >= 10 && this.value.length <= 15) {
+                hideValidationMessage('phone');
+            }
+        });
+        
+        // Name validation
+        document.getElementById('name').addEventListener('input', function(e) {
+            const name = this.value.trim();
+            if (name.length > 0 && name.length < 2) {
+                showValidationMessage('name', 'Name must be at least 2 characters');
+            } else if (name.length > 100) {
+                showValidationMessage('name', 'Name cannot exceed 100 characters');
+            } else if (name.length >= 2 && name.length <= 100) {
+                hideValidationMessage('name');
+            }
+        });
+        
+        // Email validation
+        document.getElementById('email').addEventListener('input', function(e) {
+            const email = this.value.trim();
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            
+            if (email.length > 0 && !emailPattern.test(email)) {
+                showValidationMessage('email', 'Please enter a valid email address');
+            } else if (email.length > 100) {
+                showValidationMessage('email', 'Email cannot exceed 100 characters');
+            } else if (email.length > 0 && emailPattern.test(email) && email.length <= 100) {
+                hideValidationMessage('email');
+            }
+        });
+        
+        // Password validation
+        document.getElementById('password').addEventListener('input', function(e) {
+            const password = this.value;
+            const confirmPassword = document.getElementById('password-repeat').value;
+            
+            if (password.length > 0 && password.length < 8) {
+                showValidationMessage('password', 'Password must be at least 8 characters');
+            } else if (password.length >= 8) {
+                hideValidationMessage('password');
+            }
+            
+            // Check confirm password match
+            if (confirmPassword.length > 0 && password !== confirmPassword) {
+                showValidationMessage('password-repeat', 'Passwords do not match');
+            } else if (confirmPassword.length > 0 && password === confirmPassword) {
+                hideValidationMessage('password-repeat');
+            }
+        });
+        
+        // Confirm password validation
+        document.getElementById('password-repeat').addEventListener('input', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            
+            if (confirmPassword.length > 0 && password !== confirmPassword) {
+                showValidationMessage('password-repeat', 'Passwords do not match');
+            } else if (confirmPassword.length > 0 && password === confirmPassword) {
+                hideValidationMessage('password-repeat');
+            }
+        });
+        
+        // Form validation on blur (when user leaves field)
+        document.getElementById('name').addEventListener('blur', function(e) {
+            const name = this.value.trim();
+            if (name.length === 0) {
+                hideValidationMessage('name');
+            }
+        });
+        
+        document.getElementById('email').addEventListener('blur', function(e) {
+            const email = this.value.trim();
+            if (email.length === 0) {
+                hideValidationMessage('email');
+            }
+        });
+        
+        document.getElementById('phone').addEventListener('blur', function(e) {
+            const phone = this.value.trim();
+            if (phone.length === 0) {
+                hideValidationMessage('phone');
+            }
         });
     </script>
 </body>

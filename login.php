@@ -31,6 +31,83 @@
         .toggle-password:hover {
             color: #cb7f00;
         }
+        
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .modal form {
+            padding: 20px;
+        }
+        
+        .modal-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        
+        .modal .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .modal .login-button {
+            width: 100%;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -58,6 +135,18 @@
                     echo '<p class="error-message">Invalid email or password.</p>';
                 } else if ($error === "sqlerror") {
                     echo '<p class="error-message">Database error. Please try again.</p>';
+                } else if ($error === "accountdeactivated") {
+                    echo '<p class="error-message">Your account has been deactivated. Please contact an administrator.</p>';
+                } else if ($error === "sessionexpired") {
+                    echo '<p class="error-message">Your session has expired. Please log in again.</p>';
+                }
+            }
+            
+            // Check for success messages
+            if (isset($_GET["success"])) {
+                $success = $_GET["success"];
+                if ($success === "passwordreset") {
+                    echo '<p class="success-message">Password reset successfully! You can now log in with your new password.</p>';
                 }
             }
             ?>
@@ -87,7 +176,7 @@
             </p>
         </div>
     </div>
-
+    
     <script>
         function togglePassword(fieldId) {
             const passwordField = document.getElementById(fieldId);

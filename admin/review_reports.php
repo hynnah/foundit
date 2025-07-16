@@ -82,9 +82,13 @@ $param_types = '';
 if ($filter_status === 'pending') {
     $where_conditions[] = "r.ApprovalStatusID = 1";
 } elseif ($filter_status === 'approved') {
-    $where_conditions[] = "r.ApprovalStatusID = 2";
+    $where_conditions[] = "r.ApprovalStatusID = 2 AND (r.archiveYN = 0 OR r.archiveYN IS NULL) AND (r.claimedYN = 0 OR r.claimedYN IS NULL)";
 } elseif ($filter_status === 'rejected') {
     $where_conditions[] = "r.ApprovalStatusID = 3";
+} elseif ($filter_status === 'archived') {
+    $where_conditions[] = "r.ApprovalStatusID = 2 AND r.archiveYN = 1";
+} elseif ($filter_status === 'claimed') {
+    $where_conditions[] = "r.ApprovalStatusID = 2 AND r.claimedYN = 1";
 }
 
 if ($filter_type) {
@@ -110,7 +114,9 @@ $sql = "SELECT r.*,
                a.status_name,
                l.location_last_seen,
                f.location_found,
-               pr.name as reviewer_name
+               pr.name as reviewer_name,
+               COALESCE(r.archiveYN, 0) as archiveYN,
+               COALESCE(r.claimedYN, 0) as claimedYN
         FROM Report r
         JOIN User u ON r.UserID_submitter = u.UserID
         JOIN Person p ON u.UserID = p.PersonID
@@ -131,8 +137,10 @@ $result = mysqli_stmt_get_result($stmt);
 // Get counts for different statuses
 $counts_sql = "SELECT 
                  SUM(CASE WHEN ApprovalStatusID = 1 THEN 1 ELSE 0 END) as pending_count,
-                 SUM(CASE WHEN ApprovalStatusID = 2 THEN 1 ELSE 0 END) as approved_count,
-                 SUM(CASE WHEN ApprovalStatusID = 3 THEN 1 ELSE 0 END) as rejected_count
+                 SUM(CASE WHEN ApprovalStatusID = 2 AND (archiveYN = 0 OR archiveYN IS NULL) AND (claimedYN = 0 OR claimedYN IS NULL) THEN 1 ELSE 0 END) as approved_count,
+                 SUM(CASE WHEN ApprovalStatusID = 3 THEN 1 ELSE 0 END) as rejected_count,
+                 SUM(CASE WHEN ApprovalStatusID = 2 AND archiveYN = 1 THEN 1 ELSE 0 END) as archived_count,
+                 SUM(CASE WHEN ApprovalStatusID = 2 AND claimedYN = 1 THEN 1 ELSE 0 END) as claimed_count
                FROM Report";
 $counts_result = mysqli_query($connection, $counts_sql);
 $counts = mysqli_fetch_assoc($counts_result);
@@ -376,6 +384,8 @@ $csrf_token = generateCSRFToken();
         .status-pending { background: #fff3cd; color: #856404; }
         .status-approved { background: #d4edda; color: #155724; }
         .status-rejected { background: #f8d7da; color: #721c24; }
+        .status-archived { background: #f8f9fa; color: #6c757d; }
+        .status-claimed { background: #cce5ff; color: #004085; }
         
         .type-badge {
             padding: 4px 8px;
@@ -435,6 +445,12 @@ $csrf_token = generateCSRFToken();
                 <a href="?status=rejected" class="status-tab <?php echo $filter_status === 'rejected' ? 'active' : ''; ?>">
                     Rejected (<?php echo $counts['rejected_count']; ?>)
                 </a>
+                <a href="?status=archived" class="status-tab <?php echo $filter_status === 'archived' ? 'active' : ''; ?>">
+                    Archived (<?php echo $counts['archived_count']; ?>)
+                </a>
+                <a href="?status=claimed" class="status-tab <?php echo $filter_status === 'claimed' ? 'active' : ''; ?>">
+                    Claimed (<?php echo $counts['claimed_count']; ?>)
+                </a>
                 <a href="?status=all" class="status-tab <?php echo $filter_status === 'all' ? 'active' : ''; ?>">
                     All Reports
                 </a>
@@ -484,8 +500,16 @@ $csrf_token = generateCSRFToken();
                             <span class="type-badge type-<?php echo strtolower($row['report_type']); ?>">
                                 <?php echo $row['report_type']; ?>
                             </span>
-                            <span class="status-badge status-<?php echo strtolower($row['status_name']); ?>">
-                                <?php echo $row['status_name']; ?>
+                            <?php
+                            $display_status = $row['status_name'];
+                            if ($row['archiveYN'] == 1) {
+                                $display_status = 'Archived';
+                            } elseif ($row['claimedYN'] == 1) {
+                                $display_status = 'Claimed';
+                            }
+                            ?>
+                            <span class="status-badge status-<?php echo strtolower($display_status); ?>">
+                                <?php echo $display_status; ?>
                             </span>
                         </div>
                     </div>
@@ -544,6 +568,21 @@ $csrf_token = generateCSRFToken();
                             </button>
                         <?php endif; ?>
                         
+                        <?php if ($row['status_name'] === 'Approved' && $row['archiveYN'] == 0 && $row['claimedYN'] == 0): ?>
+                            <button onclick="updateReportStatus(<?php echo $row['ReportID']; ?>, 'archive')" class="btn btn-secondary">
+                                📦 Archive
+                            </button>
+                            <button onclick="updateReportStatus(<?php echo $row['ReportID']; ?>, 'mark_claimed')" class="btn btn-success">
+                                ✓ Mark as Claimed
+                            </button>
+                        <?php endif; ?>
+                        
+                        <?php if ($row['archiveYN'] == 1): ?>
+                            <button onclick="updateReportStatus(<?php echo $row['ReportID']; ?>, 'unarchive')" class="btn btn-primary">
+                                📤 Unarchive
+                            </button>
+                        <?php endif; ?>
+                        
                         <a href="view_report.php?id=<?php echo $row['ReportID']; ?>" class="btn btn-secondary">View Details</a>
                     </div>
                     
@@ -584,6 +623,35 @@ $csrf_token = generateCSRFToken();
         function toggleReviewForm(reportId) {
             const form = document.getElementById('reviewForm' + reportId);
             form.classList.toggle('active');
+        }
+        
+        function updateReportStatus(reportId, action) {
+            if (!confirm('Are you sure you want to ' + action.replace('_', ' ') + ' this report?')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('report_id', reportId);
+            formData.append('csrf_token', '<?php echo htmlspecialchars(generateCSRFToken()); ?>');
+            
+            fetch('update_report_status.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the report status');
+            });
         }
         
         // Enhanced filter functionality

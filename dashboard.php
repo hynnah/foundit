@@ -11,6 +11,7 @@ $recent_reports = [];
 $sql = "SELECT r.*, 
                l.location_last_seen AS lost_location, 
                f.location_found AS found_location,
+               f.vague_item_name AS vague_item_name,
                a.status_name AS approvalstatus,
                fp.PostID,
                p.name AS submitter_name,
@@ -542,10 +543,10 @@ ob_start();
             <?php foreach ($recent_reports as $report): ?>
                 <div class="post-card" 
                      data-type="<?php echo strtolower($report['report_type']); ?>"
-                     data-name="<?php echo strtolower($report['item_name']); ?>"
+                     data-name="<?php echo strtolower($report['report_type'] === 'Found' ? ($report['vague_item_name'] ?? $report['item_name']) : $report['item_name']); ?>"
                      data-date="<?php echo strtotime($report['submission_date']); ?>"
                      data-incident-date="<?php echo strtotime($report['incident_date']); ?>"
-                     data-search="<?php echo strtolower($report['item_name'] . ' ' . $report['description']); ?>">
+                     data-search="<?php echo strtolower(($report['report_type'] === 'Found' ? ($report['vague_item_name'] ?? $report['item_name']) : $report['item_name']) . ' ' . $report['description']); ?>">
                     
                     <div class="post-header">
                         <div class="post-username">
@@ -565,53 +566,12 @@ ob_start();
                     </div>
                     
                     <div class="post-body">
-                        <?php if ($report['image_path'] && $report['report_type'] === 'Lost'): ?>
-                            <?php
-                            // Handle different image path formats
-                            $imagePath = $report['image_path'];
-                            $imageUrl = '';
-                            
-                            // Check different possible locations
-                            $possiblePaths = [
-                                'uploads/' . $imagePath,
-                                'admin/uploads/' . $imagePath,
-                                $imagePath // if full path is stored
-                            ];
-                            
-                            foreach ($possiblePaths as $path) {
-                                if (file_exists($path)) {
-                                    $imageUrl = $path;
-                                    break;
-                                }
-                            }
-                            
-                            if (!$imageUrl) {
-                                $imageUrl = 'resources/search.png'; // fallback image
-                            }
-                            ?>
-                            <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
-                                 alt="<?php echo htmlspecialchars($report['item_name']); ?>" 
-                                 class="post-image"
-                                 onerror="this.src='resources/search.png';"
-                                 title="Image path: <?php echo htmlspecialchars($report['image_path']); ?>">
-                        <?php elseif ($report['report_type'] === 'Found'): ?>
-                            <div class="post-image found-item-placeholder">
-                                <i class="fas fa-question-circle" style="font-size: 4rem; color: #666;"></i>
-                                <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666; text-align: center;">Contact Administrator<br>for Image Details</p>
-                            </div>
-                        <?php else: ?>
-                            <img src="resources/search.png" 
-                                 alt="Default item image" 
-                                 class="post-image"
-                                 title="No image available">
-                        <?php endif; ?>
-                        
                         <div class="post-details">
                             <div class="post-content">
                             <span class="post-type <?php echo strtolower($report['report_type']); ?>">
                                 <?php echo ucfirst(htmlspecialchars($report['report_type'])); ?>
                             </span>
-                            <h3 class="post-title"><?php echo htmlspecialchars($report['item_name']); ?></h3>
+                            <h3 class="post-title"><?php echo htmlspecialchars($report['report_type'] === 'Found' ? ($report['vague_item_name'] ?? $report['item_name']) : $report['item_name']); ?></h3>
                             <p class="post-description"><?php echo htmlspecialchars(truncateText($report['description'], 150)); ?></p>
                         </div>
                         

@@ -28,6 +28,12 @@ if (isset($_POST['login-submit'])) {
     $result = mysqli_stmt_get_result($stmt);
     
     if ($row = mysqli_fetch_assoc($result)) {
+        // Check if account is deactivated
+        if (isset($row['account_status']) && $row['account_status'] === 'Deactivated') {
+            header("Location: login.php?error=accountdeactivated");
+            exit();
+        }
+        
         if (password_verify($password, $row['password'])) {
             session_start();
         // Regenerate session ID to prevent fixation

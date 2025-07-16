@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Get form data
         $itemName = trim($_POST['itemName'] ?? '');
+        $vagueItemName = trim($_POST['vagueItemName'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $location = trim($_POST['location'] ?? '');
         $incidentDate = $_POST['incidentDate'] ?? '';
@@ -28,6 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Item name is required.";
         } elseif (strlen($itemName) > 100) {
             $errors[] = "Item name cannot exceed 100 characters.";
+        }
+        
+        if (empty($vagueItemName)) {
+            $errors[] = "Vague item name is required.";
+        } elseif (strlen($vagueItemName) > 255) {
+            $errors[] = "Vague item name cannot exceed 255 characters.";
         }
         
         if (empty($description)) {
@@ -126,9 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_close($stmt_report);
                 
                 // Insert into Found table
-                $sql_found = "INSERT INTO Found (ReportID, location_found) VALUES (?, ?)";
+                $sql_found = "INSERT INTO Found (ReportID, location_found, vague_item_name) VALUES (?, ?, ?)";
                 $stmt_found = mysqli_prepare($connection, $sql_found);
-                mysqli_stmt_bind_param($stmt_found, "is", $reportId, $location);
+                mysqli_stmt_bind_param($stmt_found, "iss", $reportId, $location, $vagueItemName);
                 
                 if (!mysqli_stmt_execute($stmt_found)) {
                     throw new Exception("Error inserting into Found table: " . mysqli_error($connection));
@@ -271,68 +278,129 @@ $csrf_token = generateCSRFToken();
         .required {
             color: #dc3545;
         }
+        
+        /* Character counter styles */
+        .char-counter {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+            text-align: right;
+        }
+
+        .char-counter.warning {
+            color: #ff6b35;
+        }
+
+        .char-counter.error {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body>
     <?php ob_start(); ?>
     
-    <div class="form-container">
-        <h2>Log Found Item</h2>
-        <p style="color: #666; margin-bottom: 20px;">
-            Use this form to log items that have been brought to the office or found on campus.
-        </p>
+    <div class="form-container" style="box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15); background: linear-gradient(120deg, #fff 70%, #f7f7ff 100%); border: 1px solid #e3e6f0; margin: 48px auto;">
+        <h2 style="color: #ff6600; font-weight: 800; letter-spacing: 1px; margin-bottom: 10px;">Log Found Item</h2>
+        <p style="color: #666; margin-bottom: 24px; font-size: 15px;">Use this form to log items that have been brought to the office or found on campus.</p>
         
         <?php if (isset($success_message)): ?>
-            <div class="success-message"><?php echo $success_message; ?></div>
+            <div class="success-message" style="border-left: 5px solid #28a745; background: linear-gradient(90deg, #e9fbe5 80%, #d4edda 100%); font-size: 15px;"> <?php echo $success_message; ?> </div>
         <?php endif; ?>
         
         <?php if (isset($error_message)): ?>
-            <div class="error-message"><?php echo $error_message; ?></div>
+            <div class="error-message" style="border-left: 5px solid #dc3545; background: linear-gradient(90deg, #fbe9e9 80%, #f8d7da 100%); font-size: 15px;"> <?php echo $error_message; ?> </div>
         <?php endif; ?>
         
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" style="margin-top: 10px;">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
             
             <div class="form-group">
-                <label for="itemName">Item Name <span class="required">*</span></label>
+                <label for="itemName">Item Name (Detailed) <span class="required">*</span></label>
                 <input type="text" id="itemName" name="itemName" required maxlength="100"
                        value="<?php echo htmlspecialchars($_POST['itemName'] ?? ''); ?>"
-                       placeholder="e.g., iPhone 12, Black Wallet, USC ID">
+                       placeholder="e.g., iPhone 12 Pro Max 256GB Space Gray, Black Leather Wallet with Cards"
+                       oninput="updateCharCounter(this, 100)"
+                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                <div class="char-counter" id="itemName_counter">0/100 characters</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="vagueItemName">Vague Item Name (Public Display) <span class="required">*</span></label>
+                <input type="text" id="vagueItemName" name="vagueItemName" required maxlength="255"
+                       value="<?php echo htmlspecialchars($_POST['vagueItemName'] ?? ''); ?>"
+                       placeholder="e.g., Phone, Wallet, ID, Keys (Generic name shown to users)"
+                       oninput="updateCharCounter(this, 255)"
+                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                <div class="char-counter" id="vagueItemName_counter">0/255 characters</div>
+                <small style="color: #888; font-size: 12px;">This is what users will see when browsing found items</small>
             </div>
             
             <div class="form-group">
                 <label for="description">Description <span class="required">*</span></label>
                 <textarea id="description" name="description" required maxlength="1000"
-                          placeholder="Provide detailed description including color, brand, distinguishing features, contents, etc."><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                          placeholder="Provide detailed description including color, brand, distinguishing features, contents, etc."
+                          oninput="updateCharCounter(this, 1000)"
+                          style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                <div class="char-counter" id="description_counter">0/1000 characters</div>
             </div>
             
             <div class="form-group">
                 <label for="location">Location Found <span class="required">*</span></label>
                 <input type="text" id="location" name="location" required maxlength="255"
                        value="<?php echo htmlspecialchars($_POST['location'] ?? ''); ?>"
-                       placeholder="e.g., Room 301, Computer Lab, Hallway near elevator">
+                       placeholder="e.g., Room 301, Computer Lab, Hallway near elevator"
+                       oninput="updateCharCounter(this, 255)"
+                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                <div class="char-counter" id="location_counter">0/255 characters</div>
             </div>
             
             <div class="form-group">
                 <label for="incidentDate">Date Found <span class="required">*</span></label>
                 <input type="date" id="incidentDate" name="incidentDate" required
                        value="<?php echo htmlspecialchars($_POST['incidentDate'] ?? date('Y-m-d')); ?>"
-                       max="<?php echo date('Y-m-d'); ?>">
+                       max="<?php echo date('Y-m-d'); ?>"
+                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
             </div>
             
             <div class="form-group">
                 <label for="itemImage">Upload Image (Optional)</label>
                 <div class="file-upload">
                     <input type="file" id="itemImage" name="itemImage" accept="image/*">
-                    <label for="itemImage">Choose Image File (JPEG, PNG, GIF, WebP - Max 5MB)</label>
+                    <label for="itemImage" style="background: #f7f7ff; border: 1.5px dashed #ff6600; color: #ff6600; font-weight: 600;">Choose Image File (JPEG, PNG, GIF, WebP - Max 5MB)</label>
                 </div>
             </div>
             
-            <button type="submit" class="submit-btn">Log Found Item</button>
+            <button type="submit" class="submit-btn" style="background: linear-gradient(90deg, #ff6600 60%, #ff9900 100%); font-weight: 700; letter-spacing: 1px; box-shadow: 0 2px 8px rgba(255,102,0,0.08);">Log Found Item</button>
         </form>
     </div>
     
     <script>
+        function updateCharCounter(element, maxLength) {
+            const current = element.value.length;
+            const counter = document.getElementById(element.id + '_counter');
+            
+            if (counter) {
+                counter.textContent = current + '/' + maxLength + ' characters';
+                
+                // Update counter color based on usage
+                if (current >= maxLength * 0.9) {
+                    counter.className = 'char-counter error';
+                } else if (current >= maxLength * 0.7) {
+                    counter.className = 'char-counter warning';
+                } else {
+                    counter.className = 'char-counter';
+                }
+            }
+        }
+
+        // Initialize character counters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCounter(document.getElementById('itemName'), 100);
+            updateCharCounter(document.getElementById('vagueItemName'), 255);
+            updateCharCounter(document.getElementById('description'), 1000);
+            updateCharCounter(document.getElementById('location'), 255);
+        });
+        
         // File upload feedback
         document.getElementById('itemImage').addEventListener('change', function(e) {
             var label = document.querySelector('label[for="itemImage"]');

@@ -18,6 +18,7 @@ if (!$post_id || !is_numeric($post_id)) {
 $sql = "SELECT r.*, 
                l.location_last_seen AS lost_location, 
                f.location_found AS found_location,
+               f.vague_item_name,
                a.status_name AS approvalstatus,
                fp.PostID,
                fp.post_date,
@@ -282,7 +283,7 @@ ob_start();
             <div class="item-type-badge <?php echo strtolower($item['report_type']); ?>">
                 <?php echo ucfirst($item['report_type']); ?> Item
             </div>
-            <h1 class="item-title"><?php echo htmlspecialchars($item['item_name']); ?></h1>
+            <h1 class="item-title"><?php echo htmlspecialchars($item['report_type'] === 'Found' ? ($item['vague_item_name'] ?? $item['item_name']) : $item['item_name']); ?></h1>
         </div>
         
         <div class="item-content">
@@ -312,7 +313,7 @@ ob_start();
                     }
                     ?>
                     <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
-                         alt="<?php echo htmlspecialchars($item['item_name']); ?>" 
+                         alt="<?php echo htmlspecialchars($item['report_type'] === 'Found' ? ($item['vague_item_name'] ?? $item['item_name']) : $item['item_name']); ?>" 
                          class="item-image"
                          onerror="this.src='resources/search.png';">
                 <?php elseif ($item['report_type'] === 'Found'): ?>

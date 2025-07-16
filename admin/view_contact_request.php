@@ -22,8 +22,12 @@ $sql = "SELECT
             cr.ownership_description, 
             cr.submission_date, 
             cr.review_status,
-            cr.detailed_description,
-            cr.evidence_details,
+            cr.item_appearance,
+            cr.location_lost,
+            cr.date_lost,
+            cr.evidence_file_path,
+            cr.evidence_file_name,
+            cr.unique_marks,
             cr.review_notes,
             cr.review_date,
             r.ReportID,
@@ -34,6 +38,7 @@ $sql = "SELECT
             r.report_type,
             l.location_last_seen,
             f.location_found,
+            f.vague_item_name,
             fp.PostID,
             fp.post_date,
             c.claim_status,
@@ -394,19 +399,49 @@ ob_start();
                         <?php echo nl2br(htmlspecialchars($request['ownership_description'])); ?>
                     </div>
                 </div>
-                <?php if (!empty($request['detailed_description'])): ?>
+                <?php if (!empty($request['item_appearance'])): ?>
                     <div class="info-row">
-                        <strong>Detailed Description:</strong>
+                        <strong>Item Appearance:</strong>
                         <div class="message-content">
-                            <?php echo nl2br(htmlspecialchars($request['detailed_description'])); ?>
+                            <?php echo nl2br(htmlspecialchars($request['item_appearance'])); ?>
                         </div>
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($request['evidence_details'])): ?>
+                
+                <?php if (!empty($request['location_lost'])): ?>
                     <div class="info-row">
-                        <strong>Evidence Details:</strong>
+                        <strong>Location Lost:</strong>
                         <div class="message-content">
-                            <?php echo nl2br(htmlspecialchars($request['evidence_details'])); ?>
+                            <?php echo htmlspecialchars($request['location_lost']); ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($request['date_lost'])): ?>
+                    <div class="info-row">
+                        <strong>Date Lost:</strong>
+                        <div class="message-content">
+                            <?php echo formatDate($request['date_lost'], 'M d, Y'); ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($request['unique_marks'])): ?>
+                    <div class="info-row">
+                        <strong>Unique Marks:</strong>
+                        <div class="message-content">
+                            <?php echo nl2br(htmlspecialchars($request['unique_marks'])); ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($request['evidence_file_path'])): ?>
+                    <div class="info-row">
+                        <strong>Evidence File:</strong>
+                        <div class="message-content">
+                            <a href="<?php echo htmlspecialchars($request['evidence_file_path']); ?>" target="_blank">
+                                <?php echo htmlspecialchars($request['evidence_file_name'] ?? 'View File'); ?>
+                            </a>
                         </div>
                     </div>
                 <?php endif; ?>

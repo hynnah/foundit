@@ -1,0 +1,23 @@
+# Password reset tokens - keep out of version control
+/tokens/
+*.json
+
+# Database config (if any)
+config.php
+
+# Uploaded files
+uploads/
+admin/uploads/
+
+# Log files
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
