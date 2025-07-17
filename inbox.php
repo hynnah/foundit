@@ -29,7 +29,9 @@ if ($isAdmin) {
                 p.email as claimant_email,
                 r.item_name,
                 r.description as item_description,
-                fp.PostID
+                fp.PostID,
+                r.report_type,
+                r.vague_item_name
             FROM ContactRequest cr
             JOIN User u ON cr.UserID_claimant = u.UserID
             JOIN Person p ON u.UserID = p.PersonID
@@ -39,31 +41,33 @@ if ($isAdmin) {
             ORDER BY cr.submission_date DESC";
 } else {
     // Regular user: Show their own contact requests and claims
-    $sql = "SELECT 
-                cr.ContactID, 
-                cr.ownership_description, 
-                cr.submission_date, 
-                cr.review_status,
-                cr.item_appearance,
-                cr.location_lost,
-                cr.date_lost,
-                cr.evidence_file_path,
-                cr.evidence_file_name,
-                cr.unique_marks,
-                cr.review_notes,
-                r.item_name,
-                r.description as item_description,
-                fp.PostID,
-                c.claim_status,
-                c.interrogation_notes,
-                c.passed_interrogationYN,
-                c.resolution_date
-            FROM ContactRequest cr
-            JOIN FeedPost fp ON cr.PostID = fp.PostID
-            JOIN Report r ON fp.ReportID = r.ReportID
-            LEFT JOIN Claim c ON cr.ContactID = c.ContactID
-            WHERE cr.UserID_claimant = ?
-            ORDER BY cr.submission_date DESC";
+    $sql = "SELECT cr.ContactID, 
+               cr.ownership_description, 
+               cr.submission_date, 
+               cr.review_status,
+               cr.item_appearance,
+               cr.location_lost,
+               cr.date_lost,
+               cr.evidence_file_path,
+               cr.evidence_file_name,
+               cr.unique_marks,
+               cr.review_notes,
+               r.item_name,
+               r.description as item_description,
+               fp.PostID,
+               c.claim_status,
+               c.interrogation_notes,
+               c.passed_interrogationYN,
+               c.resolution_date,
+               r.report_type,
+               f.vague_item_name AS vague_item_name
+        FROM ContactRequest cr
+        JOIN FeedPost fp ON cr.PostID = fp.PostID
+        JOIN Report r ON fp.ReportID = r.ReportID
+        LEFT JOIN Found f ON r.ReportID = f.ReportID AND r.report_type = 'Found'
+        LEFT JOIN Claim c ON cr.ContactID = c.ContactID
+        WHERE cr.UserID_claimant = ?
+        ORDER BY cr.submission_date DESC";
 }
 
 $stmt = mysqli_prepare($connection, $sql);
@@ -272,7 +276,15 @@ ob_start();
         <?php while ($row = mysqli_fetch_assoc($result)): ?>
             <div class="request-card" data-status="<?php echo htmlspecialchars($row['review_status']); ?>">
                 <div class="request-header">
-                    <div class="request-title"><?php echo htmlspecialchars($row['item_name']); ?></div>
+                    <div class="request-title">
+                        <?php 
+                        if (isset($row['report_type']) && $row['report_type'] === 'Found') {
+                            echo htmlspecialchars($row['vague_item_name'] ?? 'Found Item');
+                        } else {
+                            echo htmlspecialchars($row['item_name']);
+                        }
+                        ?>
+                    </div>
                     <div class="status-badge status-<?php echo strtolower($row['review_status']); ?>">
                         <?php echo htmlspecialchars($row['review_status']); ?>
                     </div>

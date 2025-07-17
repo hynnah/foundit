@@ -311,7 +311,12 @@ ob_start();
         <div class="section-card">
             <h3>Item Information</h3>
             <div class="item-details">
-                <?php if (!empty($request['image_path'])): ?>
+                <?php if ($request['report_type'] === 'Found'): ?>
+                    <div class="item-image found-item-placeholder" style="width:300px;height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8f9fa;border:2px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                        <i class="fas fa-question-circle" style="font-size:6rem;color:#666;margin-bottom:20px;"></i>
+                        <p style="margin:0;font-size:1.1rem;color:#666;text-align:center;font-weight:500;">Contact Administrator<br>for Image Details</p>
+                    </div>
+                <?php elseif (!empty($request['image_path'])): ?>
                     <div class="item-image">
                         <?php
                         $imagePath = $request['image_path'];
@@ -323,6 +328,7 @@ ob_start();
                         ?>
                         <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
                              alt="<?php echo htmlspecialchars($request['item_name']); ?>" 
+                             style="width:100%;height:300px;object-fit:cover;border-radius:10px;border:2px solid #e0e0e0;box-shadow:0 4px 16px rgba(0,0,0,0.1);transition:all 0.3s ease;"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                         <div class="image-placeholder" style="display:none;">
                             <p>Image not available</p>
@@ -333,7 +339,15 @@ ob_start();
                 <div class="item-info">
                     <div class="info-row">
                         <strong>Item Name:</strong>
-                        <span><?php echo htmlspecialchars($request['item_name']); ?></span>
+                        <span>
+                            <?php 
+                            if ($request['report_type'] === 'Found') {
+                                echo htmlspecialchars($request['vague_item_name'] ?? 'Found Item');
+                            } else {
+                                echo htmlspecialchars($request['item_name']);
+                            }
+                            ?>
+                        </span>
                     </div>
                     <div class="info-row">
                         <strong>Type:</strong>
@@ -341,10 +355,12 @@ ob_start();
                             <?php echo htmlspecialchars($request['report_type']); ?>
                         </span>
                     </div>
+                    <?php if ($request['report_type'] === 'Lost'): ?>
                     <div class="info-row">
                         <strong>Description:</strong>
                         <span><?php echo nl2br(htmlspecialchars($request['item_description'])); ?></span>
                     </div>
+                    <?php endif; ?>
                     <div class="info-row">
                         <strong>Date <?php echo ucfirst(strtolower($request['report_type'])); ?>:</strong>
                         <span><?php echo formatDate($request['incident_date']); ?></span>

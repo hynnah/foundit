@@ -397,13 +397,6 @@ ob_start();
                 </div>
             </div>
         </div>
-        
-        <div class="description-section">
-            <h3><i class="fas fa-align-left"></i> Description</h3>
-            <div class="description-text">
-                <?php echo htmlspecialchars($item['description']); ?>
-            </div>
-        </div>
     </div>
 </div>
 

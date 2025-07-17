@@ -352,10 +352,7 @@ ob_start();
                 <span class="info-value"><?php echo htmlspecialchars($post['submitter_name'] ?? 'System'); ?></span>
             </div>
         </div>
-        <div class="info-item">
-            <span class="info-label">Description:</span>
-            <span class="info-value"><?php echo htmlspecialchars($post['description']); ?></span>
-        </div>
+       
     </div>
 
     <!-- Contact Form -->
