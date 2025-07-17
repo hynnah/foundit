@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoundIt Admin - <?php echo isset($content_header) ? htmlspecialchars($content_header) : 'Dashboard'; ?></title>
     <link rel="stylesheet" href="../style.css">
+    <link rel="icon" type="image/png" href="../resources/logo.png">
 </head>
 <body>
     <div class='main-content'>

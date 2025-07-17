@@ -107,7 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update the Report table with claim status
                 $sql_report = "UPDATE Report SET 
-                              claimedYN = " . ($claim_status === 'Completed' ? '1' : '0') . "
+                              claimedYN = " . ($claim_status === 'Completed' ? '1' : '0') . ",
+                              archiveYN = " . ($claim_status === 'Completed' ? '1' : '0') . "
                               WHERE ReportID = ?";
                 
                 $stmt_report = mysqli_prepare($connection, $sql_report);

@@ -538,57 +538,45 @@
             z-index: 1;
         }
 
+        /* Hide CTA buttons and features until hero image loads */
+        .cta-buttons, .features-preview {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+        }
+        .hero-loaded .cta-buttons {
+            opacity: 1;
+            pointer-events: auto;
+            transition-delay: 0s;
+        }
+        .hero-loaded .features-preview {
+            opacity: 1;
+            pointer-events: auto;
+            transition-delay: 0.8s;
+        }
+
+        /* Floating Particles (Enhanced) */
         .floating-particles {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
             pointer-events: none;
             z-index: 1;
         }
-
         .particle {
             position: absolute;
-            width: 4px;
-            height: 4px;
-            background: rgba(203, 127, 0, 0.3);
             border-radius: 50%;
-            animation: float 20s infinite linear;
+            animation: float 24s infinite linear;
+            will-change: transform, opacity;
+            pointer-events: none;
+            transition: background 0.3s;
         }
-
-        .particle:nth-child(even) {
-            background: rgba(255, 179, 71, 0.2);
-            animation-duration: 25s;
-        }
-
-        /* Animations */
-        @keyframes fadeInScale {
-            from {
-                opacity: 0;
-                transform: scale(0.8);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         @keyframes float {
             0% {
-                transform: translateY(100vh) rotate(0deg);
+                transform: translateY(100vh) scale(1) rotate(0deg);
                 opacity: 0;
             }
             10% {
@@ -598,8 +586,14 @@
                 opacity: 1;
             }
             100% {
-                transform: translateY(-100vh) rotate(360deg);
+                transform: translateY(-120vh) scale(1.2) rotate(360deg);
                 opacity: 0;
+            }
+        }
+        @media (max-width: 768px) {
+            .floating-particles {
+                width: 100vw;
+                height: 100vh;
             }
         }
 
@@ -746,17 +740,7 @@
 <body>
     <div class="landing-page">
         <!-- Floating Particles Background -->
-        <div class="floating-particles">
-            <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
-            <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
-            <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
-            <div class="particle" style="left: 40%; animation-delay: 6s;"></div>
-            <div class="particle" style="left: 50%; animation-delay: 8s;"></div>
-            <div class="particle" style="left: 60%; animation-delay: 10s;"></div>
-            <div class="particle" style="left: 70%; animation-delay: 12s;"></div>
-            <div class="particle" style="left: 80%; animation-delay: 14s;"></div>
-            <div class="particle" style="left: 90%; animation-delay: 16s;"></div>
-        </div>
+        <div class="floating-particles" id="floating-particles"></div>
 
         <div class="landing-container">
             <div class="hero-section">
@@ -851,13 +835,55 @@
             });
         });
 
+        // Floating particles effect - enhanced
+        function randomBetween(a, b) {
+            return a + Math.random() * (b - a);
+        }
+        function randomColor() {
+            const colors = [
+                'rgba(203,127,0,0.7)', // gold
+                'rgba(255,215,0,0.7)', // yellow
+                'rgba(255,179,71,0.7)', // orange
+                'rgba(255,255,255,0.5)', // white
+                'rgba(255,255,153,0.6)', // light yellow
+                'rgba(255,140,0,0.6)', // deep orange
+                'rgba(255,236,139,0.7)' // pale gold
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        function createParticles(num) {
+            const container = document.getElementById('floating-particles');
+            container.innerHTML = '';
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            for (let i = 0; i < num; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = randomBetween(6, 18);
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = randomBetween(0, 100) + '%';
+                p.style.top = randomBetween(0, 100) + '%';
+                p.style.background = randomColor();
+                p.style.opacity = randomBetween(0.5, 0.95);
+                p.style.filter = 'blur(' + randomBetween(0, 2) + 'px)';
+                p.style.boxShadow = `0 0 ${randomBetween(8, 32)}px ${randomColor()}`;
+                const duration = randomBetween(12, 32);
+                const delay = randomBetween(0, 20);
+                p.style.animationDuration = duration + 's';
+                p.style.animationDelay = delay + 's';
+                container.appendChild(p);
+            }
+        }
+        createParticles(38);
+        window.addEventListener('resize', () => createParticles(38));
+
         // Add particle animation on scroll
         window.addEventListener('scroll', function() {
             const particles = document.querySelectorAll('.particle');
             const scrolled = window.pageYOffset;
-            
             particles.forEach((particle, index) => {
-                const speed = 0.5 + (index * 0.1);
+                const speed = 0.5 + (index * 0.07);
                 particle.style.transform = `translateY(${scrolled * speed}px)`;
             });
         });
@@ -910,7 +936,7 @@
         document.querySelector('.logo-container').addEventListener('mouseenter', function() {
             if (!typingStarted) {
                 const dialogText = document.getElementById('dialog-text');
-                const message = "Hi there! I'm <strong>Findy</strong>, your friendly FoundIt assistant! 🎉 I help reunite people with their lost treasures through our secure platform. <strong>Lost something? Found something?</strong> I've got you covered!";
+                const message = "Hi there! I'm <strong>Findy</strong>, Welcome to <strong>FoundIt</strong>! <strong>Lost something? Found something? Report it!</strong> We got you covered!";
                 typingStarted = true;
                 setTimeout(() => {
                     typeWriter(dialogText, message, 60);
@@ -927,6 +953,75 @@
             setTimeout(() => {
                 document.getElementById('dialog-text').innerHTML = '';
             }, 400);
+        });
+        
+        // Easter Egg: Feature card click GIF popup
+        (function() {
+            const featureCards = document.querySelectorAll('.feature-card');
+            // Only 1st and 4th card, 14 clicks
+            const clickCounts = [0, 0, 0, 0];
+            const clickTimers = [null, null, null, null];
+            const gifs = [
+                'resources/gif1.gif', // 1st card
+                null,                // 2nd card
+                null,                // 3rd card
+                'resources/gif2.gif' // 4th card
+            ];
+            featureCards.forEach((card, idx) => {
+                if ((idx === 0 || idx === 3) && gifs[idx]) {
+                    card.addEventListener('click', () => {
+                        clickCounts[idx]++;
+                        clearTimeout(clickTimers[idx]);
+                        clickTimers[idx] = setTimeout(() => clickCounts[idx] = 0, 2000);
+                        if (clickCounts[idx] === 14) {
+                            clickCounts[idx] = 0;
+                            showEasterEgg(gifs[idx]);
+                        }
+                    });
+                }
+            });
+            function showEasterEgg(gifUrl) {
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.top = 0;
+                overlay.style.left = 0;
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.background = 'rgba(0,0,0,0.85)';
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.style.zIndex = 9999;
+                overlay.style.cursor = 'pointer';
+                const img = document.createElement('img');
+                img.src = gifUrl;
+                img.style.maxWidth = '80vw';
+                img.style.maxHeight = '80vh';
+                img.style.borderRadius = '16px';
+                img.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)';
+                overlay.appendChild(img);
+                overlay.addEventListener('click', () => document.body.removeChild(overlay));
+                document.body.appendChild(overlay);
+            }
+        })();
+
+        // Reveal CTA and features only after hero image loads and transitioned in
+        document.addEventListener('DOMContentLoaded', function() {
+            var heroImg = document.querySelector('.hero-logo');
+            var body = document.body;
+            if (heroImg) {
+                if (!heroImg.complete) {
+                    heroImg.addEventListener('load', function() {
+                        setTimeout(function() {
+                            body.classList.add('hero-loaded');
+                        }, 2400); // 400ms + 2000ms extra delay
+                    });
+                } else {
+                    setTimeout(function() {
+                        body.classList.add('hero-loaded');
+                    }, 2400);
+                }
+            }
         });
     </script>
 </body>

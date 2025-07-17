@@ -179,7 +179,7 @@ $stats = mysqli_fetch_assoc($stats_result);
                 </div>
             </div>
             
-            <div class="stat-card secondary">
+            <div class="stat-card archived">
                 <div class="stat-icon">📁</div>
                 <div class="stat-content">
                     <h3><?php echo $stats['archived_items'] ?? 0; ?></h3>
@@ -365,6 +365,7 @@ $stats = mysqli_fetch_assoc($stats_result);
         .stat-card.success { border-left: 4px solid #28a745; }
         .stat-card.warning { border-left: 4px solid #ffc107; }
         .stat-card.info { border-left: 4px solid #17a2b8; }
+        .stat-card.archived { border-left: 4px solid #7c3aed; }
 
         .stat-icon {
             font-size: 2.5em;

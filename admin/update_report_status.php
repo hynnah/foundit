@@ -143,8 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $report_data = mysqli_fetch_assoc($check_result);
             
-            // Update report to claimed status
-            $sql = "UPDATE Report SET claimedYN = 1 WHERE ReportID = ?";
+            // Update report to claimed and archived status
+            $sql = "UPDATE Report SET claimedYN = 1, archiveYN = 1 WHERE ReportID = ?";
             $stmt = mysqli_prepare($connection, $sql);
             mysqli_stmt_bind_param($stmt, "i", $reportId);
             

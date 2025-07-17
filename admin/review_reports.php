@@ -181,35 +181,48 @@ $csrf_token = generateCSRFToken();
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #007bff;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
         }
         
         .status-tabs {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 0px;
+            padding: 8px 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
         }
         
-        .status-tab {
+        .status-tabs a.status-tab {
             padding: 10px 20px;
-            border: 2px solid #ddd;
+            border: 2px solid #e0e0e0;
             border-radius: 6px;
             text-decoration: none;
-            color: #666;
+            color: #222;
             font-weight: 500;
-            transition: all 0.3s;
+            background: #fff;
+            transition: all 0.2s;
+            box-shadow: none;
+            display: inline-block;
         }
         
-        .status-tab.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
+        .status-tabs a.status-tab.active {
+            background:rgba(34, 32, 32, 0.9);
+            color: #fff;
+            border-color:rgba(5, 2, 2, 0.58);
+            font-weight: 600;
+        }
+
+        .status-tabs a.status-tab.active:hover {
+            background:rgba(34, 32, 32, 0.9);
+            color: #fff;
+            border-color:rgba(5, 2, 2, 0.58);
+            font-weight: 600;
         }
         
-        .status-tab:hover {
-            border-color: #007bff;
+        .status-tabs a.status-tab:hover {
+            background: rgba(59, 58, 58, 0.9);
         }
         
         .filters {
@@ -473,7 +486,6 @@ $csrf_token = generateCSRFToken();
     
     <div class="review-container">
         <div class="review-header">
-            <h2>Review Reports</h2>
             <div class="status-tabs">
                 <a href="?status=pending" class="status-tab <?php echo $filter_status === 'pending' ? 'active' : ''; ?>">
                     Pending (<?php echo $counts['pending_count']; ?>)
@@ -627,7 +639,13 @@ $csrf_token = generateCSRFToken();
                                 ✓ Mark as Claimed
                             </button>
                         <?php endif; ?>
-                        
+
+                        <?php if (strtolower(trim($row['status_name'])) === 'claimed' && $row['archiveYN'] == 0): ?>
+                            <button onclick="updateReportStatus(<?php echo $row['ReportID']; ?>, 'archive')" class="btn btn-secondary">
+                                📦 Archive
+                            </button>
+                        <?php endif; ?>
+
                         <?php if ($row['archiveYN'] == 1): ?>
                             <button onclick="updateReportStatus(<?php echo $row['ReportID']; ?>, 'unarchive')" class="btn btn-primary">
                                 📤 Unarchive

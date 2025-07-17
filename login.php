@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoundIt - Login</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="resources/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <style>
         .password-input-container {
@@ -108,6 +109,51 @@
             width: 100%;
             margin-top: 10px;
         }
+        
+        /* Floating Particles Styles */
+        .floating-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(203, 127, 0, 0.3);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+        .particle:nth-child(even) {
+            background: rgba(255, 179, 71, 0.2);
+            animation-duration: 25s;
+        }
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .right-panel {
+            position: relative;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -122,6 +168,18 @@
     </div>
 
     <div class="right-panel">
+        <!-- Floating Particles Background -->
+        <div class="floating-particles">
+            <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+            <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+            <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+            <div class="particle" style="left: 40%; animation-delay: 6s;"></div>
+            <div class="particle" style="left: 50%; animation-delay: 8s;"></div>
+            <div class="particle" style="left: 60%; animation-delay: 10s;"></div>
+            <div class="particle" style="left: 70%; animation-delay: 12s;"></div>
+            <div class="particle" style="left: 80%; animation-delay: 14s;"></div>
+            <div class="particle" style="left: 90%; animation-delay: 16s;"></div>
+        </div>
         <div class="login-container">
             <h1>Login</h1>
             <p class="subtitle">Sign in to continue</p>
@@ -192,6 +250,16 @@
                 toggleIcon.classList.add('fa-eye');
             }
         }
+
+        // Floating particles scroll animation (from index.php)
+        window.addEventListener('scroll', function() {
+            const particles = document.querySelectorAll('.right-panel .particle');
+            const scrolled = window.pageYOffset;
+            particles.forEach((particle, index) => {
+                const speed = 0.5 + (index * 0.1);
+                particle.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
     </script>
 </body>
 </html>

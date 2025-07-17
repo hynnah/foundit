@@ -123,7 +123,7 @@ try {
             throw new Exception('No rows were updated - contact request may not exist');
         }
         
-        // If approved, create claim record
+        // If approved, create claim record and archive the item
         if ($action === 'approve') {
             $sql_claim = "INSERT INTO Claim (ContactID, UserID_claimant, AdminID_processor, claim_date, claim_status) 
                          VALUES (?, ?, ?, NOW(), 'Processing')";
@@ -138,6 +138,18 @@ try {
                 throw new Exception('Failed to create claim record: ' . mysqli_stmt_error($stmt_claim));
             }
             mysqli_stmt_close($stmt_claim);
+
+            // Archive the item in Report table
+            $sql_archive = "UPDATE Report r JOIN FeedPost fp ON r.ReportID = fp.ReportID JOIN ContactRequest cr ON fp.PostID = cr.PostID SET r.archiveYN = 1 WHERE cr.ContactID = ?";
+            $stmt_archive = mysqli_prepare($connection, $sql_archive);
+            if (!$stmt_archive) {
+                throw new Exception('Failed to prepare archive query: ' . mysqli_error($connection));
+            }
+            mysqli_stmt_bind_param($stmt_archive, "i", $contactId);
+            if (!mysqli_stmt_execute($stmt_archive)) {
+                throw new Exception('Failed to archive item: ' . mysqli_stmt_error($stmt_archive));
+            }
+            mysqli_stmt_close($stmt_archive);
         }
         
         // Commit transaction

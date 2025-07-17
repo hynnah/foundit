@@ -180,135 +180,176 @@ $csrf_token = generateCSRFToken();
     <title>FoundIt - Log Found Item</title>
     <link rel="stylesheet" href="../style.css">
     <style>
+        /* Modern, clean form style from login/register, for use inside admin layout - LIGHT THEME */
         .form-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 2.5rem 2rem 2rem 2rem;
+            background: linear-gradient(135deg, #fff 0%, #f7f7ff 100%);
+            border-radius: 12px;
+            box-shadow: 0 8px 40px 0 rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            border: 1.5px solid #e3e6f0;
         }
-        
+        .form-container h2 {
+            color: #232323;
+            font-weight: 700;
+            letter-spacing: 1.1px;
+            margin-bottom: 8px;
+            font-size: 1.7rem;
+            text-shadow: none;
+            font-family: 'Segoe UI', 'Nunito', Arial, sans-serif;
+        }
+        .form-container p {
+            color: #666;
+            margin-bottom: 24px;
+            font-size: 1.01rem;
+        }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
-        
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #333;
+            margin-bottom: 7px;
+            font-weight: 600;
+            color: #232323;
+            font-size: 1.01rem;
+            letter-spacing: 0.1px;
         }
-        
         .form-group input,
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 13px 15px;
+            border: 1.5px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #f7f7ff;
+            color: #232323;
+            font-family: inherit;
+            box-shadow: none;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
         }
-        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 2px #4a90e233;
+        }
         .form-group textarea {
-            min-height: 100px;
+            min-height: 90px;
             resize: vertical;
         }
-        
-        .submit-btn {
-            background: #007bff;
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
+        .form-group small {
+            color: #888;
+            font-size: 12px;
         }
-        
-        .submit-btn:hover {
-            background: #0056b3;
+        .char-counter {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+            text-align: right;
+            font-family: 'Nunito', Arial, sans-serif;
         }
-        
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border: 1px solid #c3e6cb;
+        .char-counter.warning {
+            color: #4a90e2;
         }
-        
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border: 1px solid #f5c6cb;
+        .char-counter.error {
+            color: #e74c3c;
         }
-        
+        .required {
+            color: #e74c3c;
+        }
         .file-upload {
             position: relative;
             display: inline-block;
             width: 100%;
         }
-        
         .file-upload input[type="file"] {
             position: absolute;
             left: -9999px;
         }
-        
         .file-upload label {
             display: inline-block;
-            padding: 12px 20px;
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 13px 20px;
+            background: #f7f7ff;
+            border: 1.5px dashed #ccc;
+            border-radius: 6px;
+            color: #232323;
+            font-weight: 600;
             cursor: pointer;
             text-align: center;
             width: 100%;
             box-sizing: border-box;
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
         }
-        
         .file-upload label:hover {
-            background: #e9ecef;
+            background: #fffbe6;
+            color: #4a90e2;
         }
-        
-        .required {
-            color: #dc3545;
+        .submit-btn {
+            background: linear-gradient(90deg, #4a90e2 60%, #232323 100%);
+            color: #fff;
+            padding: 15px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.12rem;
+            font-weight: 700;
+            width: 100%;
+            box-shadow: 0 2px 16px #4a90e211;
+            letter-spacing: 1.1px;
+            margin-top: 10px;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
         }
-        
-        /* Character counter styles */
-        .char-counter {
-            font-size: 11px;
-            color: #999;
-            margin-top: 2px;
-            text-align: right;
+        .submit-btn:hover {
+            background: linear-gradient(90deg, #232323 60%, #4a90e2 100%);
+            color: #fff;
+            box-shadow: 0 4px 24px #4a90e233;
         }
-
-        .char-counter.warning {
-            color: #ff6b35;
+        .success-message {
+            background: #e9fbe5;
+            color: #155724;
+            padding: 13px 18px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4a90e2;
+            font-size: 1rem;
+            font-family: 'Nunito', Arial, sans-serif;
+            box-shadow: 0 2px 8px #4a90e211;
         }
-
-        .char-counter.error {
-            color: #dc3545;
+        .error-message {
+            background: #fbe9e9;
+            color: #e74c3c;
+            padding: 13px 18px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+            font-size: 1rem;
+            font-family: 'Nunito', Arial, sans-serif;
+            box-shadow: 0 2px 8px #e74c3c11;
+        }
+        @media (max-width: 600px) {
+            .form-container {
+                padding: 1.2rem 0.5rem 1.5rem 0.5rem;
+                max-width: 98vw;
+            }
         }
     </style>
 </head>
 <body>
     <?php ob_start(); ?>
     
-    <div class="form-container" style="box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15); background: linear-gradient(120deg, #fff 70%, #f7f7ff 100%); border: 1px solid #e3e6f0; margin: 48px auto;">
-        <h2 style="color: #ff6600; font-weight: 800; letter-spacing: 1px; margin-bottom: 10px;">Log Found Item</h2>
+    <div class="form-container">
+        <h2 style="color: #232323; font-weight: 800; letter-spacing: 1px; margin-bottom: 10px;">Log Found Item</h2>
         <p style="color: #666; margin-bottom: 24px; font-size: 15px;">Use this form to log items that have been brought to the office or found on campus.</p>
         
         <?php if (isset($success_message)): ?>
-            <div class="success-message" style="border-left: 5px solid #28a745; background: linear-gradient(90deg, #e9fbe5 80%, #d4edda 100%); font-size: 15px;"> <?php echo $success_message; ?> </div>
+            <div class="success-message"> <?php echo $success_message; ?> </div>
         <?php endif; ?>
         
         <?php if (isset($error_message)): ?>
-            <div class="error-message" style="border-left: 5px solid #dc3545; background: linear-gradient(90deg, #fbe9e9 80%, #f8d7da 100%); font-size: 15px;"> <?php echo $error_message; ?> </div>
+            <div class="error-message"> <?php echo $error_message; ?> </div>
         <?php endif; ?>
         
         <form method="post" enctype="multipart/form-data" style="margin-top: 10px;">
@@ -319,8 +360,7 @@ $csrf_token = generateCSRFToken();
                 <input type="text" id="itemName" name="itemName" required maxlength="100"
                        value="<?php echo htmlspecialchars($_POST['itemName'] ?? ''); ?>"
                        placeholder="e.g., iPhone 12 Pro Max 256GB Space Gray, Black Leather Wallet with Cards"
-                       oninput="updateCharCounter(this, 100)"
-                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                       oninput="updateCharCounter(this, 100)">
                 <div class="char-counter" id="itemName_counter">0/100 characters</div>
             </div>
             
@@ -329,18 +369,16 @@ $csrf_token = generateCSRFToken();
                 <input type="text" id="vagueItemName" name="vagueItemName" required maxlength="255"
                        value="<?php echo htmlspecialchars($_POST['vagueItemName'] ?? ''); ?>"
                        placeholder="e.g., Phone, Wallet, ID, Keys (Generic name shown to users)"
-                       oninput="updateCharCounter(this, 255)"
-                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                       oninput="updateCharCounter(this, 255)">
                 <div class="char-counter" id="vagueItemName_counter">0/255 characters</div>
-                <small style="color: #888; font-size: 12px;">This is what users will see when browsing found items</small>
+                <small>This is what users will see when browsing found items</small>
             </div>
             
             <div class="form-group">
                 <label for="description">Description <span class="required">*</span></label>
                 <textarea id="description" name="description" required maxlength="1000"
                           placeholder="Provide detailed description including color, brand, distinguishing features, contents, etc."
-                          oninput="updateCharCounter(this, 1000)"
-                          style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                          oninput="updateCharCounter(this, 1000)"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
                 <div class="char-counter" id="description_counter">0/1000 characters</div>
             </div>
             
@@ -349,8 +387,7 @@ $csrf_token = generateCSRFToken();
                 <input type="text" id="location" name="location" required maxlength="255"
                        value="<?php echo htmlspecialchars($_POST['location'] ?? ''); ?>"
                        placeholder="e.g., Room 301, Computer Lab, Hallway near elevator"
-                       oninput="updateCharCounter(this, 255)"
-                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                       oninput="updateCharCounter(this, 255)">
                 <div class="char-counter" id="location_counter">0/255 characters</div>
             </div>
             
@@ -358,19 +395,18 @@ $csrf_token = generateCSRFToken();
                 <label for="incidentDate">Date Found <span class="required">*</span></label>
                 <input type="date" id="incidentDate" name="incidentDate" required
                        value="<?php echo htmlspecialchars($_POST['incidentDate'] ?? date('Y-m-d')); ?>"
-                       max="<?php echo date('Y-m-d'); ?>"
-                       style="background: #f7f7ff; border: 1.5px solid #ff6600; font-weight: 500;">
+                       max="<?php echo date('Y-m-d'); ?>">
             </div>
             
             <div class="form-group">
                 <label for="itemImage">Upload Image (Optional)</label>
                 <div class="file-upload">
                     <input type="file" id="itemImage" name="itemImage" accept="image/*">
-                    <label for="itemImage" style="background: #f7f7ff; border: 1.5px dashed #ff6600; color: #ff6600; font-weight: 600;">Choose Image File (JPEG, PNG, GIF, WebP - Max 5MB)</label>
+                    <label for="itemImage">Choose Image File (JPEG, PNG, GIF, WebP - Max 5MB)</label>
                 </div>
             </div>
             
-            <button type="submit" class="submit-btn" style="background: linear-gradient(90deg, #ff6600 60%, #ff9900 100%); font-weight: 700; letter-spacing: 1px; box-shadow: 0 2px 8px rgba(255,102,0,0.08);">Log Found Item</button>
+            <button type="submit" class="submit-btn">Log Found Item</button>
         </form>
     </div>
     
