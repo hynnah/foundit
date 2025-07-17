@@ -300,7 +300,15 @@ ob_start();
                 </div>
                 
                 <div class="request-content">
-                    <p><strong>Item Description:</strong> <?php echo htmlspecialchars($row['item_description']); ?></p>
+                    <p><strong>Item Description:</strong> 
+                        <?php 
+                        if (isset($row['report_type']) && $row['report_type'] === 'Found') {
+                            echo '<span style="color:#888;">(Hidden for privacy)</span>';
+                        } else {
+                            echo htmlspecialchars($row['item_description']);
+                        }
+                        ?>
+                    </p>
                     <p><strong>Ownership Description:</strong> <?php echo htmlspecialchars($row['ownership_description']); ?></p>
                     
                     <?php if ($row['item_appearance']): ?>
