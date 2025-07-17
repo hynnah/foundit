@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 16, 2025 at 02:46 PM
+-- Generation Time: Jul 17, 2025 at 11:27 AM
 -- Server version: 10.11.11-MariaDB-0+deb12u1
 -- PHP Version: 8.2.28
 
@@ -204,6 +204,7 @@ CREATE TABLE `User` (
 --
 
 INSERT INTO `User` (`UserID`, `role`) VALUES
+(1, 'Student'),
 (2, 'Student');
 
 --
