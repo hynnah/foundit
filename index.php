@@ -962,10 +962,10 @@
             const clickCounts = [0, 0, 0, 0];
             const clickTimers = [null, null, null, null];
             const gifs = [
-                'resources/gif1.gif', // 1st card
+                null, // 1st card
                 null,                // 2nd card
                 null,                // 3rd card
-                'resources/gif2.gif' // 4th card
+                'resources/gif3.gif' // 4th card
             ];
             featureCards.forEach((card, idx) => {
                 if ((idx === 0 || idx === 3) && gifs[idx]) {
