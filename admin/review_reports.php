@@ -161,6 +161,23 @@ $counts = mysqli_fetch_assoc($counts_result);
 
 // Generate CSRF token
 $csrf_token = generateCSRFToken();
+
+// Normalize image path for all statuses
+function getReportImagePath($image_path) {
+    if (!$image_path) return false;
+    // Remove leading ../ if present
+    $image_path = preg_replace('/^\.\.\//', '', $image_path);
+    // Ensure it starts with uploads/ or resources/
+    if (strpos($image_path, 'uploads/') === 0 || strpos($image_path, 'resources/') === 0) {
+        return '../' . $image_path;
+    }
+    // If it's already a full URL, return as is
+    if (preg_match('/^https?:\/\//', $image_path)) {
+        return $image_path;
+    }
+    // Default fallback
+    return '../uploads/' . $image_path;
+}
 ?>
 
 <!DOCTYPE html>
@@ -612,7 +629,7 @@ $csrf_token = generateCSRFToken();
                         
                         <?php if ($row['image_path']): ?>
                             <p><strong>Image:</strong></p>
-                            <img src="../<?php echo htmlspecialchars($row['image_path']); ?>" alt="Item Image" class="report-image">
+                            <img src="<?php echo htmlspecialchars(getReportImagePath($row['image_path'])); ?>" alt="Item Image" class="report-image">
                         <?php endif; ?>
                         
                         <?php if ($row['reviewNote']): ?>
